@@ -29,8 +29,6 @@ device pause and DNS filtering rules.**
   <img src="docs/images/demo.gif" width="860" alt="Animation: clicking StarPulse in the menu bar opens the popover, then Open dashboard opens the dashboard window">
 </p>
 
-![StarPulse dashboard with live tiles, throughput and latency charts, power, 3D obstruction dome and events](docs/images/dashboard.png)
-
 ## Why StarPulse
 
 - **Local data, no cloud dependency.** Status, history and obstruction maps come from the dish's

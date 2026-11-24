@@ -76,12 +76,12 @@ extension DishDecoder {
             var inner = ProtoReader(try reader.readLengthDelimited())
             while let (f, w) = try inner.nextField() {
                 switch (f, w) {
-                case (1, .varint): config.snowMelt = .init(rawValue: Int(try inner.readVarint())) ?? .automatic
-                case (4, .varint): config.sleepStartUTCMinutes = Int(try inner.readVarint())
-                case (5, .varint): config.sleepDurationMinutes = Int(try inner.readVarint())
+                case (1, .varint): config.snowMelt = .init(rawValue: try inner.readInt()) ?? .automatic
+                case (4, .varint): config.sleepStartUTCMinutes = try inner.readInt()
+                case (5, .varint): config.sleepDurationMinutes = try inner.readInt()
                 case (6, .varint): config.sleepEnabled = try inner.readVarint() != 0
                 case (7, .varint): config.deferUpdates = try inner.readVarint() != 0
-                case (9, .varint): config.updateRebootHour = Int(try inner.readVarint())
+                case (9, .varint): config.updateRebootHour = try inner.readInt()
                 default: try inner.skip(w)
                 }
             }
@@ -126,7 +126,7 @@ extension RouterDecoder {
             while let (f, w) = try node.nextField() {
                 switch (f, w) {
                 case (1, .lengthDelimited): name = String(decoding: try node.readLengthDelimited(), as: UTF8.self)
-                case (3, .varint): auth = Int(try node.readVarint())
+                case (3, .varint): auth = try node.readInt()
                 case (9, .lengthDelimited): hardware = String(decoding: try node.readLengthDelimited(), as: UTF8.self)
                 default: try node.skip(w)
                 }
@@ -148,7 +148,7 @@ extension RouterDecoder {
             while let (field, wire) = try probe.nextField() {
                 switch (field, wire) {
                 case (1005, .lengthDelimited): ssid = String(decoding: try probe.readLengthDelimited(), as: UTF8.self)
-                case (1011, .varint): band = Int(try probe.readVarint())
+                case (1011, .varint): band = try probe.readInt()
                 case (1015, .varint): hidden = try probe.readVarint() != 0
                 case (let f, .lengthDelimited) where securityNames[f] != nil:
                     security = securityNames[f] ?? ""

@@ -137,7 +137,7 @@ final class LoginWindow: NSObject, WKNavigationDelegate, WKHTTPCookieStoreObserv
         for attempt in 0..<4 {
             if attempt > 0 { try? await Task.sleep(for: .milliseconds(700)) }
             let cookies = await webView.configuration.websiteDataStore.httpCookieStore.allCookies()
-                .filter { $0.domain.hasSuffix("starlink.com") }
+                .filter { StarlinkCookies.isStarlinkDomain($0.domain) }
             let header = cookies.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
             guard StarlinkCookies.hasSSO(header) else { continue }
             do {

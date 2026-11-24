@@ -58,7 +58,7 @@ public enum DishDecoder {
             case (1009, .fixed32): status.latencyMs = try reader.readFloat()
             case (1011, .fixed32): status.boresightAzimuthDeg = try reader.readFloat()
             case (1012, .fixed32): status.boresightElevationDeg = try reader.readFloat()
-            case (1017, .varint): status.mobilityClass = Int(try reader.readVarint())
+            case (1017, .varint): status.mobilityClass = try reader.readInt()
             case (1027, .lengthDelimited): try decodeAlignment(try reader.readLengthDelimited(), into: &status)
             case (1016, .varint): status.ethSpeedMbps = Int32(truncatingIfNeeded: try reader.readVarint())
             default: try reader.skip(wire)
@@ -87,7 +87,7 @@ public enum DishDecoder {
         while let (field, wire) = try reader.nextField() {
             switch (field, wire) {
             case (3, .fixed32): status.tiltAngleDeg = try reader.readFloat()
-            case (6, .varint): status.attitudeState = Int(try reader.readVarint())
+            case (6, .varint): status.attitudeState = try reader.readInt()
             case (8, .fixed32): status.desiredAzimuthDeg = try reader.readFloat()
             case (9, .fixed32): status.desiredElevationDeg = try reader.readFloat()
             default: try reader.skip(wire)
@@ -126,11 +126,12 @@ public enum DishDecoder {
         var reader = ProtoReader(body)
         while let (field, wire) = try reader.nextField() {
             switch field {
-            case 1: rows = Int(try reader.readVarint())
-            case 2: cols = Int(try reader.readVarint())
+            // The dish sends 123 x 123; the cap keeps rows * cols from overflowing.
+            case 1: rows = Int(min(try reader.readVarint(), 4096))
+            case 2: cols = Int(min(try reader.readVarint(), 4096))
             case 3: try reader.appendFloats(wire: wire, to: &cells)
             case 5 where wire == .fixed32: maxTheta = try reader.readFloat()
-            case 6 where wire == .varint: frame = Int(try reader.readVarint())
+            case 6 where wire == .varint: frame = try reader.readInt()
             default: try reader.skip(wire)
             }
         }
@@ -175,8 +176,7 @@ public enum DishDecoder {
         guard length > 0, current > 0 else { return [] }
         let count = Int(min(current, UInt64(length)))
         return (0..<count).map { offset in
-            let absolute = Int(current) - count + offset
-            let ring = absolute % length
+            let ring = Int((current - UInt64(count) + UInt64(offset)) % UInt64(length))
             let ping = latency[ring]
             return TelemetrySample(
                 timestamp: now.addingTimeInterval(-Double(count - 1 - offset)),
@@ -199,8 +199,8 @@ public enum DishDecoder {
             var start: Int64 = 0, duration: UInt64 = 0
             while let (f, w) = try event.nextField() {
                 switch (f, w) {
-                case (1, .varint): severity = Int(try event.readVarint())
-                case (2, .varint): reason = Int(try event.readVarint())
+                case (1, .varint): severity = try event.readInt()
+                case (2, .varint): reason = try event.readInt()
                 case (3, .varint): start = Int64(bitPattern: try event.readVarint())
                 case (4, .varint): duration = try event.readVarint()
                 default: try event.skip(w)

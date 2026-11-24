@@ -44,6 +44,9 @@ public struct ProtoReader {
         return (Int(key >> 3), wire)
     }
 
+    /// A varint as Int without trapping: values come from whatever answers on the LAN.
+    public mutating func readInt() throws -> Int { Int(truncatingIfNeeded: try readVarint()) }
+
     public mutating func readVarint() throws -> UInt64 {
         var result: UInt64 = 0
         var shift: UInt64 = 0

@@ -214,3 +214,16 @@ private func response(field: Int, _ build: (inout ProtoWriter) -> Void) -> [UInt
     #expect(stats.eventsLastDay == 1)
     #expect(TelemetryStats.compute(samples: [], events: [], now: now).medianLatencyMs == nil)
 }
+
+// Anything on the LAN can answer at the dish's address, so out-of-range numbers must not trap.
+@Test func hostileSizesAndCountersDoNotCrash() throws {
+    var inner = ProtoWriter()
+    inner.writeVarint(1, UInt64.max); inner.writeVarint(2, UInt64.max); inner.writeVarint(6, UInt64.max)
+    var envelope = ProtoWriter()
+    envelope.writeBytes(2008, inner.bytes)
+    let map = try DishDecoder.decodeObstructionMap(response: envelope.bytes)
+    #expect(map.isEmpty)
+
+    let samples = DishDecoder.unrollRing(current: UInt64.max, drop: [0, 0], latency: [20, 30], down: [], up: [], power: [], now: Date())
+    #expect(samples.count == 2)
+}

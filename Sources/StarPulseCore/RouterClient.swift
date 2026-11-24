@@ -104,8 +104,8 @@ public enum RouterDecoder {
             case (5, .lengthDelimited): rx = try stats(try reader.readLengthDelimited(), field15s: 18, field1m: 17)
             case (6, .lengthDelimited): tx = try stats(try reader.readLengthDelimited(), field15s: 13, field1m: nil)
             case (7, .varint): client.associatedSeconds = UInt32(truncatingIfNeeded: try reader.readVarint())
-            case (9, .varint): client.band = .init(rawValue: Int(try reader.readVarint())) ?? .unknown
-            case (14, .varint): client.role = .init(rawValue: Int(try reader.readVarint())) ?? .unknown
+            case (9, .varint): client.band = .init(rawValue: try reader.readInt()) ?? .unknown
+            case (14, .varint): client.role = .init(rawValue: try reader.readInt()) ?? .unknown
             case (31, .lengthDelimited): client.givenName = String(decoding: try reader.readLengthDelimited(), as: UTF8.self)
             case (42, .varint): client.blocked = try reader.readVarint() != 0
             case (43, .varint): client.clientId = UInt32(truncatingIfNeeded: try reader.readVarint())

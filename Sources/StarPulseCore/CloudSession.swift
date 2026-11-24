@@ -4,6 +4,12 @@ import Security
 public enum StarlinkCookies {
     public static func hasSSO(_ header: String) -> Bool { header.contains("Starlink.Com.Sso=") }
 
+    /// starlink.com or a subdomain of it; a bare suffix match would also accept "evilstarlink.com".
+    public static func isStarlinkDomain(_ domain: String) -> Bool {
+        let host = domain.hasPrefix(".") ? String(domain.dropFirst()) : domain
+        return host == "starlink.com" || host.hasSuffix(".starlink.com")
+    }
+
     /// Applies Set-Cookie results to a Cookie header like a browser jar: same name
     /// replaces, a new name is added, an expired one is removed. Starlink splits a
     /// large token into a marker plus numbered pieces that must all be re-sent

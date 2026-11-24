@@ -82,3 +82,11 @@ private let serviceLines = """
     let cloud = StarlinkCloud(store: MemoryStore(), transport: HTTPTransport { _ in throw URLError(.badURL) })
     await #expect(throws: CloudError.notConnected) { try await cloud.account() }
 }
+
+@Test func onlyStarlinkCookieDomainsAreKept() {
+    #expect(StarlinkCookies.isStarlinkDomain("starlink.com"))
+    #expect(StarlinkCookies.isStarlinkDomain(".starlink.com"))
+    #expect(StarlinkCookies.isStarlinkDomain("api.starlink.com"))
+    #expect(!StarlinkCookies.isStarlinkDomain("evilstarlink.com"))
+    #expect(!StarlinkCookies.isStarlinkDomain("starlink.com.example.net"))
+}

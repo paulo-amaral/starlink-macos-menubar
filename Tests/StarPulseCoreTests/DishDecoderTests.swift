@@ -238,3 +238,26 @@ private func response(field: Int, _ build: (inout ProtoWriter) -> Void) -> [UInt
     #expect(abs(reading.turnClockwiseDeg - 30) < 1e-9)   // 350° → 20° the short way is 30° clockwise
     #expect(abs(reading.raiseFaceDeg - 6) < 1e-9)
 }
+
+// Dishylink #67: thinning by array position re-picks points every second and reshapes old line
+// segments; the dish's own counter gives each sample a fixed identity.
+@Test func samplesKeepTheirSequenceAsTheRingAdvances() {
+    let latency: [Float] = Array(repeating: 30, count: 6)
+    let before = DishDecoder.unrollRing(current: 10, drop: [], latency: latency, down: [], up: [], power: [], now: Date())
+    let after = DishDecoder.unrollRing(current: 11, drop: [], latency: latency, down: [], up: [], power: [], now: Date())
+    #expect(before.map(\.sequence) == [4, 5, 6, 7, 8, 9])
+    #expect(after.map(\.sequence) == [5, 6, 7, 8, 9, 10])
+    let keptBefore = Set(before.filter { $0.sequence % 3 == 0 }.map(\.sequence))
+    let keptAfter = Set(after.filter { $0.sequence % 3 == 0 }.map(\.sequence))
+    #expect(keptBefore.intersection(keptAfter) == [6, 9])
+}
+
+// Dishylink #4: a fixed unit instead of switching between Mbps and Kbps.
+@Test func ratesCanBeShownInAFixedUnit() {
+    #expect(Format.rate(850_000) == ("850", "Kbps"))
+    #expect(Format.rate(850_000, unit: .mbps) == ("0.85", "Mbps"))
+    #expect(Format.rate(12_300_000, unit: .mbps) == ("12.3", "Mbps"))
+    #expect(Format.rate(12_300_000, unit: .kbps) == ("12300", "Kbps"))
+    #expect(Format.menuBarRate(850_000, unit: .mbps) == "0.85Mb/s")
+    #expect(Format.menuBarRate(2_500_000_000, unit: .kbps) == "2500000Kb/s")
+}

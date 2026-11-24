@@ -7,6 +7,8 @@ final class SpeedTestModel {
     var progress = SpeedTestProgress()
     /// Full-scale of the dial in Mbps. It only steps up during a run, so the needle never jumps back.
     var gaugeMax = 100.0
+    /// Whether the last run went through Starlink (Dishylink issue #71); nil until known.
+    var onStarlink: Bool?
     private var task: Task<Void, Never>?
 
     static let scales = [50.0, 100, 250, 500, 1000, 2000]
@@ -26,6 +28,11 @@ final class SpeedTestModel {
         guard !isRunning else { return }
         progress = SpeedTestProgress()
         gaugeMax = 100
+        onStarlink = nil
+        Task { [weak self] in
+            let result = await StarlinkNetwork.isThisMacOnStarlink()
+            self?.onStarlink = result
+        }
         task = Task { [weak self] in
             await SpeedTester().run { update in
                 Task { @MainActor in
@@ -68,6 +75,13 @@ struct SpeedTestView: View {
             SpeedGauge(value: gaugeValue, maximum: gaugeMaximum, color: progress.phase == .upload ? Theme.up : Theme.down)
                 .frame(height: 200)
             Text("STARLINK").font(Theme.ui(13, .bold)).tracking(8).foregroundStyle(Theme.ink)
+            if let onStarlink = model.onStarlink {
+                Label(onStarlink ? "Measured over Starlink" : "Not measured over Starlink",
+                      systemImage: onStarlink ? "checkmark.seal" : "exclamationmark.triangle")
+                    .font(Theme.ui(11, .medium)).foregroundStyle(onStarlink ? Theme.good : Theme.warm)
+                    .help(onStarlink ? "This Mac's public address belongs to SpaceX's network (AS14593)"
+                                     : "This Mac reached Cloudflare through another network, such as a VPN or another connection")
+            }
             HStack(alignment: .top) {
                 figure(progress.downloadMbps, "arrow.down.to.line", "Mbps", measured: progress.downloadMbps != nil)
                 figure(progress.uploadMbps, "arrow.up.to.line", "Mbps", measured: progress.uploadMbps != nil)

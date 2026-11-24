@@ -35,6 +35,10 @@ enum SettingsKey {
     static let readouts = "menuBarReadouts"
     static let appearance = "appearance"
     static let openAtLaunch = "openDashboardAtLaunch"
+    static let rateUnit = "rateUnit"
+    static let throughputAxisMax = "throughputAxisMaxMbps"
+
+    static var savedRateUnit: RateUnit { RateUnit(rawValue: UserDefaults.standard.string(forKey: rateUnit) ?? "") ?? .automatic }
 }
 
 @MainActor @Observable
@@ -91,7 +95,7 @@ final class TelemetryStore {
             return isOutage ? "Outage" : "Online"
         case .latency: return status.latencyMs > 0 ? "\(Int(status.latencyMs.rounded())) ms" : "-- ms"
         case .pingSuccess: return pingSuccessPercent.map { "\(Int($0.rounded()))%" } ?? "--"
-        case .throughput: return "↓\(Format.menuBarRate(status.downlinkBps))"
+        case .throughput: return "↓\(Format.menuBarRate(status.downlinkBps, unit: SettingsKey.savedRateUnit))"
         case .power: return latestPower.map { "\(Int($0.rounded())) W" } ?? "-- W"
         }
     }
@@ -152,7 +156,11 @@ final class TelemetryStore {
         guard let api = RouterAPI(host: routerHost) else { return }
         do {
             let status = try await api.status()
+            #if DEBUG
+            routerStatus = Anonymizer.routerStatus(status)
+            #else
             routerStatus = status
+            #endif
             if let ms = status.popLatencyMs { latencyHistory.recordRouter(ms, at: Date()) }
             if includeConfig || routerConfig == nil { routerConfig = try? await api.config() }
             #if DEBUG

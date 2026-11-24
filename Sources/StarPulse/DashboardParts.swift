@@ -195,7 +195,7 @@ struct PowerCard: View {
         ChartCard(title: "Power draw", subtitle: average.map { String(format: "≈ %.2f kWh/day at recent draw", $0 * 24 / 1000) } ?? "no power data") {
             EmptyView()
         } content: {
-            Chart(Array(samples.enumerated().filter { $0.offset % 3 == 0 && $0.element.powerW > 0 }), id: \.offset) { _, sample in
+            Chart(samples.filter { $0.sequence % 3 == 0 && $0.powerW > 0 }, id: \.sequence) { sample in
                 AreaMark(x: .value("Time", sample.timestamp), y: .value("W", Double(sample.powerW))).foregroundStyle(LinearGradient(colors: [Theme.ink.opacity(0.25), .clear], startPoint: .top, endPoint: .bottom))
                 LineMark(x: .value("Time", sample.timestamp), y: .value("W", Double(sample.powerW))).foregroundStyle(Theme.ink)
             }

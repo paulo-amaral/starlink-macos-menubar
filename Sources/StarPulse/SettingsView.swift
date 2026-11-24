@@ -1,3 +1,4 @@
+import ServiceManagement
 import StarPulseCore
 import SwiftUI
 
@@ -163,6 +164,14 @@ struct RouterSettingsPane: View {
                     SettingRow(title: "Router firmware", detail: config.country.isEmpty ? "" : "country \(config.country)") {
                         Text(store.routerStatus?.firmware ?? "--").font(Theme.mono(11)).textSelection(.enabled)
                     }
+                    if let wan = store.routerStatus, !wan.wanIPv4.isEmpty || !wan.wanIPv6.isEmpty {
+                        SettingRow(title: "WAN IPv4", detail: RouterStatus.isCarrierGradeNAT(wan.wanIPv4) ? "Shared by Starlink (CGNAT); not reachable from the internet" : "Address on the Starlink side") {
+                            Text(wan.wanIPv4.isEmpty ? "--" : wan.wanIPv4).font(Theme.mono(11)).textSelection(.enabled)
+                        }
+                        SettingRow(title: "WAN IPv6", detail: "Public addresses assigned by Starlink") {
+                            Text(wan.wanIPv6.isEmpty ? "--" : wan.wanIPv6.joined(separator: "\n")).font(Theme.mono(11)).multilineTextAlignment(.trailing).textSelection(.enabled)
+                        }
+                    }
                     SettingRow(title: "DNS servers", detail: config.nameservers.isEmpty ? "Default" : "Set on the router") {
                         Text(config.nameservers.joined(separator: ", ")).font(Theme.mono(11)).textSelection(.enabled)
                     }
@@ -189,16 +198,29 @@ struct AppSettingsPane: View {
     @AppStorage(SettingsKey.host) private var host = "192.168.100.1"
     @AppStorage(SettingsKey.openAtLaunch) private var openAtLaunch = false
     @AppStorage(SettingsKey.appearance) private var appearance = AppearanceChoice.dark.rawValue
+    @AppStorage(SettingsKey.rateUnit) private var rateUnit = RateUnit.automatic.rawValue
+    @AppStorage(SettingsKey.throughputAxisMax) private var axisMax = 0.0
 
     var body: some View {
         Form {
             Section("Menu bar") { ReadoutToggles() }
             Section("General") {
+                OpenAtLoginToggle()
                 Toggle("Open dashboard at launch", isOn: $openAtLaunch)
                     .help("Show the dashboard window when StarPulse starts")
                 LabeledContent("Theme") {
                     AppSegmented(selection: $appearance, options: AppearanceChoice.allCases.map { ($0.rawValue, $0.label) },
                                   help: "Dark is the default; System follows macOS").frame(width: 240)
+                }
+            }
+            Section("Throughput") {
+                LabeledContent("Unit") {
+                    AppSegmented(selection: $rateUnit, options: RateUnit.allCases.map { ($0.rawValue, $0.label) },
+                                  help: "Automatic switches between Kbps and Mbps; the others keep one unit").frame(width: 240)
+                }
+                LabeledContent("Chart scale") {
+                    AppSegmented(selection: $axisMax, options: [(0.0, "Auto"), (100.0, "100"), (250.0, "250"), (500.0, "500")],
+                                  help: "Auto fits the data; a fixed top in Mbps keeps spikes comparable").frame(width: 240)
                 }
             }
             Section("Dish") {
@@ -228,5 +250,29 @@ struct ReadoutToggles: View {
             ))
             .help("Show \(item.label.lowercased()) in the menu bar")
         }
+    }
+}
+
+/// Starts StarPulse in the menu bar when you log in, through macOS's own login items (Dishylink issue #57).
+private struct OpenAtLoginToggle: View {
+    @State private var enabled = SMAppService.mainApp.status == .enabled
+    @State private var note: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Toggle("Open at login", isOn: Binding(get: { enabled }, set: { change($0) }))
+                .help("Start StarPulse in the menu bar when you log in, without opening a window")
+            if let note { Text(note).font(Theme.ui(11)).foregroundStyle(Theme.warm) }
+        }
+    }
+
+    private func change(_ on: Bool) {
+        do {
+            if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+            note = SMAppService.mainApp.status == .requiresApproval ? "Allow StarPulse in System Settings › General › Login Items." : nil
+        } catch {
+            note = error.localizedDescription
+        }
+        enabled = SMAppService.mainApp.status == .enabled
     }
 }

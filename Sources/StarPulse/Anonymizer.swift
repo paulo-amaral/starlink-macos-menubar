@@ -32,6 +32,15 @@ enum Anonymizer {
         return s
     }
 
+    static func routerStatus(_ status: RouterStatus) -> RouterStatus {
+        guard isOn else { return status }
+        var s = status
+        s.deviceId = "Router-000000000000000000000000"
+        s.wanIPv4 = "100.64.0.2"
+        s.wanIPv6 = ["2001:db8::1/64"] // documentation range
+        return s
+    }
+
     static func config(_ config: RouterConfig?) -> RouterConfig? {
         guard isOn, var c = config else { return config }
         c.networks = c.networks.map { var n = $0; n.ssid = "Starlink"; return n }

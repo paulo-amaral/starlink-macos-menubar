@@ -16,7 +16,8 @@ StarPulse is one Swift package with two targets and no third-party dependencies.
 | Router `<default gateway>:9001` | gRPC-web over HTTP | Wi-Fi clients, mesh nodes, Wi-Fi config (read) |
 | `starlink.com` (signed in) | HTTPS + session cookie | account, telemetry ids, device pause, DNS |
 | `celestrak.org` | HTTPS | Starlink orbital elements (supplemental set, GP group fallback) |
-| `speed.cloudflare.com` | HTTPS | speed test |
+| `speed.cloudflare.com` | HTTPS | speed test; its `cf-meta-ip` header gives the public address |
+| `stat.ripe.net` | HTTPS | SpaceX's announced prefixes (AS14593), to say whether a speed test ran over Starlink; only the AS is sent |
 
 The router's `get_ping` request is never sent: on the Starlink router it restarts the device.
 

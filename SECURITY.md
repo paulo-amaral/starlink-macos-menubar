@@ -25,8 +25,9 @@ within 7 days.
   orbital elements (about 1.8 MB, overwritten), up to 48 hourly obstruction snapshots (about 250 KB),
   and `rules.json` (rules and per-day byte counts, at most 40 days). No telemetry or browsing logs.
 - **No analytics and no third-party SDKs.** The only outbound requests are to starlink.com (when
-  signed in), CelesTrak (orbital elements, no location sent) and Cloudflare (speed test, only when
-  you press Start).
+  signed in), CelesTrak (orbital elements, no location sent), and, only when you press Start on the
+  speed test, Cloudflare and RIPEstat. RIPEstat is asked only for SpaceX's address list (AS14593); the
+  check of your public address against it happens on your Mac.
 - **Dish maintenance asks first.** Reboot and obstruction-map reset run only after you confirm. They
   go to the dish over the LAN, or through your signed-in account when the dish refuses local changes.
   Factory reset is not available in StarPulse.

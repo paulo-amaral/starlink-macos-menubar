@@ -1,4 +1,5 @@
 import Foundation
+import simd
 import Testing
 @testable import StarPulseCore
 
@@ -147,4 +148,13 @@ private final class Counter: @unchecked Sendable {
     #expect(frames.count == SnapshotStore.limit)
     #expect(store.load() == frames)                                  // what is on disk is what is in memory
     #expect(frames.first?.takenAt == Date(timeIntervalSince1970: Double(3600 * (70 - SnapshotStore.limit))))
+}
+
+// Dishylink #66: where the dish-to-satellite beam leaves the dome (radius 1, dish at height 0.16).
+@Test func beamLeavesTheDomeOnItsSurface() {
+    let up = SkyMath.domeCrossing(origin: SIMD3(0, 0.16, 0), toward: SIMD3(0, 1, 0))
+    #expect(abs(up.y - 1) < 1e-6 && abs(up.x) < 1e-6)
+    let slanted = SkyMath.domeCrossing(origin: SIMD3(0, 0.16, 0), toward: SIMD3(0.6, 0.8, 0))
+    #expect(abs(simd_length(slanted) - 1) < 1e-5)
+    #expect(slanted.x > 0 && slanted.y > 0.16)
 }

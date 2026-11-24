@@ -101,3 +101,18 @@ private func sentConfigs(_ request: [UInt8]) throws -> (target: String, configs:
     }
     #expect(throws: PauseError.otherRouter) { try StarlinkCloud.requireSameRouter(lan: "", account: "Router-010000000000000001B31340") }
 }
+
+// Dishylink #105: the router's WAN addresses. Starlink hands out IPv4 behind CGNAT (100.64.0.0/10).
+@Test func routerStatusCarriesWanAddresses() throws {
+    var status = ProtoWriter()
+    status.writeBytes(1003, Array("100.72.1.2".utf8))
+    status.writeBytes(1017, Array("2001:db8:1::1/64".utf8))
+    status.writeBytes(1017, Array("fe80::1/64".utf8))
+    var envelope = ProtoWriter()
+    envelope.writeBytes(3004, status.bytes)
+    let decoded = try RouterDecoder.decodeStatus(response: envelope.bytes)
+    #expect(decoded.wanIPv4 == "100.72.1.2")
+    #expect(decoded.wanIPv6 == ["2001:db8:1::1/64", "fe80::1/64"])
+    #expect(RouterStatus.isCarrierGradeNAT("100.72.1.2"))
+    #expect(!RouterStatus.isCarrierGradeNAT("203.0.113.5"))
+}

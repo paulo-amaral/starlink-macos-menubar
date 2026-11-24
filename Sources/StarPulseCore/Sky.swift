@@ -1,4 +1,5 @@
 import Foundation
+import simd
 
 public struct Observer: Sendable, Equatable {
     public var latitudeDeg: Double
@@ -18,6 +19,13 @@ public struct SatelliteSky: Sendable, Equatable, Identifiable {
 }
 
 public enum SkyMath {
+    /// Where a ray from inside the unit dome leaves it: origin + t·direction with |p| = 1, t > 0.
+    public static func domeCrossing(origin: SIMD3<Float>, toward direction: SIMD3<Float>) -> SIMD3<Float> {
+        let d = simd_normalize(direction)
+        let b = simd_dot(origin, d), c = simd_dot(origin, origin) - 1
+        return origin + d * (-b + (b * b - c).squareRoot())
+    }
+
     private static let wgs84A = 6378.137
     private static let wgs84F = 1 / 298.257223563
 

@@ -223,3 +223,16 @@ private func client(_ id: UInt32, rx: UInt64?, tx: UInt64?) -> WifiClient {
     #expect(grade(400) == "F")
     #expect(Bufferbloat(idleMs: 40, downloadMs: 30, uploadMs: nil).increaseMs == 0)
 }
+
+// Dishylink #71: label a speed test by whether it ran through SpaceX's network (AS14593).
+@Test func starlinkNetworkMatchesAnnouncedPrefixes() throws {
+    let json = #"{"data":{"prefixes":[{"prefix":"98.97.0.0/16"},{"prefix":"2605:59c8::/31"},{"prefix":"129.222.4.0/23"}]}}"#
+    let network = try StarlinkNetwork(ripeStatJSON: Data(json.utf8))
+    #expect(network.contains("98.97.12.34"))
+    #expect(network.contains("129.222.5.200"))
+    #expect(!network.contains("129.222.6.1"))
+    #expect(network.contains("2605:59c9:1234::1"))
+    #expect(!network.contains("2605:59ca::1"))
+    #expect(!network.contains("203.0.113.9"))
+    #expect(!network.contains("not an address"))
+}

@@ -86,14 +86,17 @@ Download and upload against Cloudflare with a speedometer. **Advanced** shows la
 loss for the run, taken from the dish's own pings, and a **bufferbloat** grade: how much the average
 latency rose while download and upload ran, compared with the 30 seconds before the test, graded A+
 to F on [Waveform's scale](https://www.waveform.com/tools/bufferbloat). The test uses about 11 seconds each way and
-counts against your data plan.
+counts against your data plan. A label says whether the test ran over Starlink: StarPulse checks the
+public address Cloudflare saw against SpaceX's address list (AS14593), so a VPN or another
+connection shows as "Not measured over Starlink".
 
 ## Network: devices
 
 ![Devices](images/network-devices.png)
 
 Every client of the Starlink router with live per-device download and upload, Wi-Fi band and a
-**Paused** badge for paused devices.
+**Paused** badge for paused devices. Sort by activity, data usage (with each device's total for the
+period) or name.
 
 ### Device detail
 
@@ -144,10 +147,12 @@ Factory reset is shown but not available.
 
 ![Settings: Router](images/settings-router.png)
 
-**Router**: Wi-Fi networks and bands (the password is never shown), mesh nodes, firmware, DNS
+**Router**: Wi-Fi networks and bands (the password is never shown), mesh nodes, firmware, WAN IPv4
+(marked when it sits behind Starlink's CGNAT) and IPv6 addresses, DNS
 servers, bypass mode and connection details. Maintenance actions are shown but not available.
 
 ![Settings: App](images/settings-app.png)
 
-**App**: which readouts appear in the menu bar, opening the dashboard at launch, theme, the dish
-address and the Starlink account.
+**App**: which readouts appear in the menu bar, open at login, opening the dashboard at launch,
+theme, a fixed throughput unit (Mbps or Kbps) and chart scale, the dish address and the Starlink
+account.

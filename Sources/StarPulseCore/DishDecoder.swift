@@ -184,7 +184,8 @@ public enum DishDecoder {
                 dropRate: drop.indices.contains(ring) ? drop[ring] : 0,
                 downlinkBps: down.indices.contains(ring) ? down[ring] : 0,
                 uplinkBps: up.indices.contains(ring) ? up[ring] : 0,
-                powerW: power.indices.contains(ring) ? power[ring] : 0
+                powerW: power.indices.contains(ring) ? power[ring] : 0,
+                sequence: current - UInt64(count) + UInt64(offset)
             )
         }
     }

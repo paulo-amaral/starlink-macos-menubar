@@ -5,6 +5,7 @@ struct DashboardView: View {
     var store: TelemetryStore
     var account: AccountStore
     @State private var panel: DashboardPanel?
+    @AppStorage(SettingsKey.rateUnit) private var rateUnit = RateUnit.automatic.rawValue
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
@@ -42,13 +43,14 @@ struct DashboardView: View {
 
     private var tiles: some View {
         let samples = store.samples, status = store.status
-        let down = status.map { Format.rate($0.downlinkBps) } ?? ("--", "")
-        let up = status.map { Format.rate($0.uplinkBps) } ?? ("--", "")
+        let unit = RateUnit(rawValue: rateUnit) ?? .automatic
+        let down = status.map { Format.rate($0.downlinkBps, unit: unit) } ?? ("--", "")
+        let up = status.map { Format.rate($0.uplinkBps, unit: unit) } ?? ("--", "")
         return HStack(spacing: 10) {
-            CompactTile(title: "Download", value: down.0, unit: down.1, caption: "current traffic", series: thinned(samples.map { Double($0.downlinkBps) }, every: 8), color: Theme.down, help: "Current downlink throughput reported by the dish", action: nil)
-            CompactTile(title: "Upload", value: up.0, unit: up.1, caption: "current traffic", series: thinned(samples.map { Double($0.uplinkBps) }, every: 8), color: Theme.up, help: "Current uplink throughput reported by the dish", action: nil)
-            CompactTile(title: "Latency", value: status.map { $0.latencyMs > 0 ? String(Int($0.latencyMs.rounded())) : "--" } ?? "--", unit: "ms", caption: "pop ping, live", series: thinned(samples.compactMap { $0.latencyMs.map(Double.init) }, every: 8), color: Theme.warm, help: "Round-trip ping to the Starlink point of presence", action: { panel = .latency })
-            CompactTile(title: "Power draw", value: store.latestPower.map { String(format: "%.0f", $0) } ?? "--", unit: "W", caption: "current draw", series: thinned(samples.map { Double($0.powerW) }, every: 8), color: Theme.accent, help: "Terminal power draw, from the dish history buffer", action: nil)
+            CompactTile(title: "Download", value: down.0, unit: down.1, caption: "current traffic", series: thinned(samples, every: 8) { Double($0.downlinkBps) }, color: Theme.down, help: "Current downlink throughput reported by the dish", action: nil)
+            CompactTile(title: "Upload", value: up.0, unit: up.1, caption: "current traffic", series: thinned(samples, every: 8) { Double($0.uplinkBps) }, color: Theme.up, help: "Current uplink throughput reported by the dish", action: nil)
+            CompactTile(title: "Latency", value: status.map { $0.latencyMs > 0 ? String(Int($0.latencyMs.rounded())) : "--" } ?? "--", unit: "ms", caption: "pop ping, live", series: thinned(samples, every: 8) { $0.latencyMs.map(Double.init) }, color: Theme.warm, help: "Round-trip ping to the Starlink point of presence", action: { panel = .latency })
+            CompactTile(title: "Power draw", value: store.latestPower.map { String(format: "%.0f", $0) } ?? "--", unit: "W", caption: "current draw", series: thinned(samples, every: 8) { Double($0.powerW) }, color: Theme.accent, help: "Terminal power draw, from the dish history buffer", action: nil)
             CompactTile(title: "Ping success", value: store.pingSuccessPercent.map { String(format: "%.1f", $0) } ?? "--", unit: "%", caption: "last minute", series: [], color: Theme.good, help: "Share of pings answered over the last 60 seconds", action: nil)
             CompactTile(title: "Sky obstructed", value: status.map { String(format: "%.2f", Double($0.fractionObstructed) * 100) } ?? "--", unit: "%", caption: store.obstructionMap.map { "\($0.cells.filter { $0 >= 0 }.count) patches mapped" } ?? "obstruction map", series: [], color: Theme.critical, help: "Fraction of the sky view blocked, as reported by the dish", action: nil)
         }

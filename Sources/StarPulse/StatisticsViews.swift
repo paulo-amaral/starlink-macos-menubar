@@ -70,12 +70,14 @@ struct SparkArea: View {
     }
 }
 
-/// Every Nth point keeps cards light while the model holds all 900 samples.
-func thinned(_ values: [Double], every step: Int = 6) -> [Double] {
-    values.enumerated().filter { $0.offset % step == 0 }.map(\.element)
+/// Every Nth sample by the dish's own counter keeps cards light, and a kept point stays kept as the
+/// window slides, so old parts of a line keep their shape (Dishylink issue #67).
+func thinned(_ samples: [TelemetrySample], every step: Int = 6, _ value: (TelemetrySample) -> Double?) -> [Double] {
+    samples.filter { $0.sequence % UInt64(step) == 0 }.compactMap(value)
 }
 
 struct StatisticsCards: View {
+    @AppStorage(SettingsKey.rateUnit) private var rateUnit = RateUnit.automatic.rawValue
     var store: TelemetryStore
     var onSelect: (Metric) -> Void
 
@@ -84,16 +86,16 @@ struct StatisticsCards: View {
     var body: some View {
         let stats = store.stats
         let samples = store.samples
-        let down = Format.rate(Float(stats.averageDownlinkBps))
+        let down = Format.rate(Float(stats.averageDownlinkBps), unit: RateUnit(rawValue: rateUnit) ?? .automatic)
         VStack(spacing: 10) {
             card(.ping, StatisticsCard(title: "Ping success", value: stats.pingSuccessPercent.map { String(format: "%.1f", $0) } ?? "--", unit: "%", caption: "last 15 minutes",
-                                       series: thinned(samples.map { 100 * (1 - Double($0.dropRate)) })))
+                                       series: thinned(samples) { 100 * (1 - Double($0.dropRate)) }))
             card(.latency, StatisticsCard(title: "Latency", value: stats.medianLatencyMs.map { String(Int($0.rounded())) } ?? "--", unit: "ms", caption: "median, last 15 minutes",
-                                          series: thinned(samples.compactMap { $0.latencyMs.map(Double.init) }, every: 5)))
+                                          series: thinned(samples, every: 5) { $0.latencyMs.map(Double.init) }))
             card(.power, StatisticsCard(title: "Power", value: stats.averagePowerW.map { String(Int($0.rounded())) } ?? "--", unit: "W", caption: "average, last 15 minutes",
-                                        series: thinned(samples.map { Double($0.powerW) })))
+                                        series: thinned(samples) { Double($0.powerW) }))
             card(.throughput, StatisticsCard(title: "Throughput", value: down.value, unit: down.unit, caption: "download, 15 minute average",
-                                             series: thinned(samples.map { Double($0.downlinkBps) }, every: 4), secondary: thinned(samples.map { Double($0.uplinkBps) }, every: 4)))
+                                             series: thinned(samples, every: 4) { Double($0.downlinkBps) }, secondary: thinned(samples, every: 4) { Double($0.uplinkBps) }))
             card(.events, StatisticsCard(title: "Events & outages", value: String(stats.eventsLastDay), unit: stats.eventsLastDay == 1 ? "event" : "events", caption: "last 1 day"))
         }
     }

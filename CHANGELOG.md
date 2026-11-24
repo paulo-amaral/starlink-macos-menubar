@@ -4,6 +4,22 @@ All notable changes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Alignment: a 3D view of the dish inside a glowing outline of where it should point, with turn and
+  tilt steps when it needs adjusting.
+- Speed test: says whether it ran over Starlink (Dishylink issue #71).
+- Router settings: WAN IPv4 (marked when behind Starlink's CGNAT) and IPv6 addresses (#105).
+- Settings: fixed throughput unit, Mbps or Kbps (#4), and a fixed throughput chart scale (#50).
+- Settings: Open at login (#57).
+- Satellites: a marker where the beam leaves the dome (#66).
+- Devices: sort by activity, data usage or name, with usage shown per device (#60).
+
+### Fixed
+- Chart lines no longer change shape as new data arrives: points are thinned by the dish's own sample
+  counter instead of by position (#67).
+
 ## [0.1.1] - 2026-11-24
 
 ### Added

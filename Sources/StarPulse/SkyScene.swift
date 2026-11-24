@@ -297,6 +297,17 @@ struct SkySceneView: NSViewRepresentable {
         beamGeometry.materials = [gold]
         let node = SCNNode()
         node.addChildNode(SCNNode(geometry: beamGeometry)); node.addChildNode(sphere)
+        // Where the beam leaves the dome, so it reads against the obstruction map (Dishylink issue #66).
+        let crossing = SkyMath.domeCrossing(origin: SIMD3(0, 0.16, 0), toward: tip - SIMD3(0, 0.16, 0))
+        let glow = SCNMaterial(); glow.lightingModel = .constant
+        glow.diffuse.contents = NSColor(red: 1, green: 0.78, blue: 0.3, alpha: 1)
+        let spot = SCNNode(geometry: SCNSphere(radius: 0.026)); spot.geometry?.materials = [glow]
+        spot.simdPosition = crossing
+        let halo = SCNMaterial(); halo.lightingModel = .constant; halo.blendMode = .add
+        halo.diffuse.contents = NSColor(red: 1, green: 0.7, blue: 0.2, alpha: 0.35)
+        let haloNode = SCNNode(geometry: SCNSphere(radius: 0.06)); haloNode.geometry?.materials = [halo]
+        haloNode.simdPosition = crossing
+        node.addChildNode(haloNode); node.addChildNode(spot)
         return node
     }
 

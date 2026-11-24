@@ -38,6 +38,8 @@ public struct TelemetrySample: Sendable, Equatable {
     public var downlinkBps: Float
     public var uplinkBps: Float
     public var powerW: Float
+    /// The dish's own sample counter since boot: a fixed identity while the ring buffer advances.
+    public var sequence: UInt64 = 0
 }
 
 public struct DishEvent: Sendable, Equatable, Identifiable {

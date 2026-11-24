@@ -6,6 +6,9 @@ struct NetworkPanel: View {
     var store: TelemetryStore
     var account: AccountStore
     @State private var tab = Tab.devices
+    /// Activity puts the busiest devices first; Data used ranks by this period's totals (Dishylink issue #60).
+    enum Order: String, CaseIterable { case activity = "Activity", data = "Usage", name = "Name" }
+    @State private var order = Order.activity
     @State private var selectedID: String?
 
     enum Tab: String, CaseIterable { case devices = "Devices", nodes = "Nodes", rules = "Rules" }
@@ -38,6 +41,14 @@ struct NetworkPanel: View {
     private var rows: [WifiClient] {
         let source = tab == .devices ? store.clients : store.nodes
         return source.sorted { a, b in
+            switch order {
+            case .data:
+                let aData = UInt64(a.downloadMB) + UInt64(a.uploadMB), bData = UInt64(b.downloadMB) + UInt64(b.uploadMB)
+                if aData != bData { return aData > bData }
+                return a.displayName < b.displayName
+            case .name: return a.displayName.localizedStandardCompare(b.displayName) == .orderedAscending
+            case .activity: break
+            }
             let aSelf = store.localAddresses.contains(a.ip), bSelf = store.localAddresses.contains(b.ip)
             if aSelf != bSelf { return aSelf }
             let aRate = store.clientHistory.rate(for: a.id), bRate = store.clientHistory.rate(for: b.id)
@@ -56,14 +67,19 @@ struct NetworkPanel: View {
             } else if tab == .nodes {
                 NodesTab(store: store)
             } else {
-            Text("\(rows.count) \(tab == .devices ? "devices" : "nodes") · live from the router at \(store.routerHost)")
-                .font(Theme.ui(11)).foregroundStyle(Theme.inkSecondary)
+            HStack {
+                Text("\(rows.count) \(tab == .devices ? "devices" : "nodes") · live from the router at \(store.routerHost)")
+                    .font(Theme.ui(11)).foregroundStyle(Theme.inkSecondary)
+                Spacer()
+                AppSegmented(selection: $order, options: Order.allCases.map { ($0, $0.rawValue) }, help: "Sort the list")
+                    .frame(width: 230)
+            }
             if let error = store.routerError, store.allClients.isEmpty {
                 Text("Cannot read the router at \(store.routerHost): \(error). Set its address in Settings.")
                     .font(Theme.ui(12)).foregroundStyle(Theme.inkSecondary)
             }
             ForEach(rows) { client in
-                Button { selectedID = client.id } label: { DeviceRow(store: store, client: client) }
+                Button { selectedID = client.id } label: { DeviceRow(store: store, client: client, showsData: order == .data) }
                     .buttonStyle(.plain)
             }
             }
@@ -74,6 +90,7 @@ struct NetworkPanel: View {
 private struct DeviceRow: View {
     var store: TelemetryStore
     var client: WifiClient
+    var showsData = false
 
     var body: some View {
         let rate = store.clientHistory.rate(for: client.id)
@@ -86,6 +103,10 @@ private struct DeviceRow: View {
             Spacer(minLength: 8)
             if rate.downMbps + rate.upMbps >= 0.01 {
                 Text("↓\(megabits(rate.downMbps)) ↑\(megabits(rate.upMbps))").font(Theme.mono(10)).foregroundStyle(Theme.down)
+            }
+            if showsData {
+                Text(String(format: "%.2f GB", (Double(client.downloadMB) + Double(client.uploadMB)) / 1000)).font(Theme.mono(10)).foregroundStyle(Theme.inkSecondary)
+                    .help("Downloaded plus uploaded this period, as the router counts it")
             }
             if client.blocked { Chip(text: "Paused", color: Theme.warm) }
             Chip(text: client.band.label, color: Theme.inkSecondary)

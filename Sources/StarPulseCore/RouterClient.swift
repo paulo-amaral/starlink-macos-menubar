@@ -6,7 +6,15 @@ public struct RouterStatus: Sendable, Equatable {
     public var deviceId = ""
     public var hardwareVersion = ""
     public var firmware = ""
+    public var wanIPv4 = ""
+    public var wanIPv6: [String] = []
     public init() {}
+
+    /// 100.64.0.0/10: an address shared by many customers, not reachable from the internet.
+    public static func isCarrierGradeNAT(_ address: String) -> Bool {
+        let parts = address.split(separator: ".").compactMap { UInt8($0) }
+        return parts.count == 4 && parts[0] == 100 && (64...127).contains(parts[1])
+    }
 }
 
 public struct WifiClient: Sendable, Equatable, Identifiable {
@@ -67,6 +75,8 @@ public enum RouterDecoder {
             switch (field, wire) {
             case (1015, .fixed32): status.popLatencyMs = try reader.readFloat()
             case (1020, .fixed32): status.popDropRate5m = try reader.readFloat()
+            case (1003, .lengthDelimited): status.wanIPv4 = String(decoding: try reader.readLengthDelimited(), as: UTF8.self)
+            case (1017, .lengthDelimited): status.wanIPv6.append(String(decoding: try reader.readLengthDelimited(), as: UTF8.self))
             case (3, .lengthDelimited): // DeviceInfo
                 var info = ProtoReader(try reader.readLengthDelimited())
                 while let (f, w) = try info.nextField() {

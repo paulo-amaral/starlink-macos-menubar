@@ -22,18 +22,20 @@ struct Card<Content: View>: View {
 
 struct ThroughputChart: View {
     var samples: [TelemetrySample]
+    /// 0 scales to the data; otherwise a fixed top in Mbps, so spikes compare across time (Dishylink issue #50).
+    @AppStorage(SettingsKey.throughputAxisMax) private var axisMax = 0.0
 
     var body: some View {
         Card(title: "Throughput · last 15 min") {
             Chart {
-                ForEach(Array(samples.enumerated().filter { $0.offset % 3 == 0 }), id: \.offset) { _, sample in
+                ForEach(samples.filter { $0.sequence % 3 == 0 }, id: \.sequence) { sample in
                     LineMark(x: .value("Time", sample.timestamp), y: .value("Mbps", Double(sample.downlinkBps) / 1e6), series: .value("s", "Download")).foregroundStyle(Theme.down)
                     LineMark(x: .value("Time", sample.timestamp), y: .value("Mbps", Double(sample.uplinkBps) / 1e6), series: .value("s", "Upload")).foregroundStyle(Theme.up)
                 }
             }
             .chartForegroundStyleScale(["Download": Theme.down, "Upload": Theme.up])
-            .chartYScale(domain: 0...(max(1, (samples.map { Double($0.downlinkBps) }.max() ?? 0) / 1e6 * 1.1)))
-            .chartYAxisLabel("Mbps").frame(height: 160)
+            .chartYScale(domain: 0...(axisMax > 0 ? axisMax : max(1, (samples.map { Double($0.downlinkBps) }.max() ?? 0) / 1e6 * 1.1)))
+            .chartYAxisLabel("Mbps").frame(height: 160).clipped()
         }
     }
 }
@@ -48,7 +50,7 @@ struct LatencyChart: View {
                 ForEach(Array(TelemetrySample.outageRanges(samples).enumerated()), id: \.offset) { _, range in
                     RectangleMark(xStart: .value("s", range.lowerBound), xEnd: .value("e", range.upperBound.addingTimeInterval(1))).foregroundStyle(Theme.critical.opacity(0.35))
                 }
-                ForEach(Array(samples.enumerated().filter { $0.offset % 3 == 0 && $0.element.latencyMs != nil }), id: \.offset) { _, sample in
+                ForEach(samples.filter { $0.sequence % 3 == 0 && $0.latencyMs != nil }, id: \.sequence) { sample in
                     LineMark(x: .value("Time", sample.timestamp), y: .value("ms", Double(sample.latencyMs ?? 0))).foregroundStyle(Theme.warm)
                 }
             }
@@ -117,7 +119,7 @@ struct PowerChart: View {
 
     var body: some View {
         Card(title: "Power · last 15 min") {
-            Chart(Array(samples.enumerated().filter { $0.offset % 3 == 0 && $0.element.powerW > 0 }), id: \.offset) { _, sample in
+            Chart(samples.filter { $0.sequence % 3 == 0 && $0.powerW > 0 }, id: \.sequence) { sample in
                 LineMark(x: .value("Time", sample.timestamp), y: .value("W", Double(sample.powerW))).foregroundStyle(Theme.accent)
             }
             .chartYAxisLabel("W").frame(height: 160)

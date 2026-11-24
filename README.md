@@ -106,7 +106,8 @@ open build/StarPulse.app
   ├─ gRPC-web over HTTP ──► Router <gateway>:9001       clients, mesh nodes, Wi-Fi config (read)
   ├─ HTTPS ───────────────► starlink.com                account, device pause, DNS (signed in)
   ├─ HTTPS ───────────────► celestrak.org               orbital elements (once, cached)
-  └─ HTTPS ───────────────► speed.cloudflare.com        speed test (on demand)
+  ├─ HTTPS ───────────────► speed.cloudflare.com        speed test (on demand)
+  └─ HTTPS ───────────────► stat.ripe.net               SpaceX prefixes, to label the speed test (on demand)
 ```
 
 The protobuf messages are read and written by a small hand-written decoder, so the app needs no

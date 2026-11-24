@@ -2,13 +2,14 @@ import StarPulseCore
 import SwiftUI
 
 private enum Page: Hashable {
-    case statistics, network, obstructions, alignment, speedTest, satellites, menuBar
+    case statistics, network, contentFilter, obstructions, alignment, speedTest, satellites, menuBar
     case detail(StatisticsCards.Metric)
 
     var title: String {
         switch self {
         case .statistics: "Statistics"
         case .network: "Network"
+        case .contentFilter: "Content filtering"
         case .obstructions: "Obstructions"
         case .alignment: "Alignment"
         case .speedTest: "Speed test"
@@ -55,6 +56,7 @@ struct PopoverView: View {
             case "satellites": path = [.satellites]
             case "alignment": path = [.alignment]
             case "obstructions": path = [.obstructions]
+            case "contentFilter": path = [.contentFilter]
             case "statistics": path = [.statistics]
             default: break
             }
@@ -92,6 +94,7 @@ struct PopoverView: View {
             if let notice { noticeBanner(notice) }
             row("chart.bar", "Statistics", nil, .statistics)
             row("wifi", "Network", "\(store.clients.count) devices", .network)
+            row("shield.lefthalf.filled", "Content filtering", contentFilterSubtitle, .contentFilter)
             row("circle.dotted", "Obstructions", obstructionSubtitle, .obstructions)
             row("location.north.line", "Alignment", alignmentSubtitle, .alignment)
             row("speedometer", "Speed test", nil, .speedTest)
@@ -177,6 +180,11 @@ struct PopoverView: View {
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(color))
     }
 
+    private var contentFilterSubtitle: String? {
+        guard let servers = store.routerConfig?.nameservers else { return nil }
+        return ContentFilter.current(servers)?.title ?? "Custom DNS"
+    }
+
     private var obstructionSubtitle: String? {
         store.status.map { String(format: "%.1f%% obstructed", Double($0.fractionObstructed) * 100) }
     }
@@ -212,6 +220,7 @@ struct PopoverView: View {
         switch page {
         case .statistics: StatisticsCards(store: store) { path.append(.detail($0)) }
         case .network: NetworkPanel(store: store, account: account)
+        case .contentFilter: ContentFilterPicker(store: store, account: account)
         case .obstructions:
             VStack(alignment: .trailing, spacing: 8) {
                 SatelliteLink { path.append(.satellites) }

@@ -4,6 +4,26 @@ The Starlink router cannot block URLs, keywords or HTTPS sites. What it can do i
 a different DNS server. StarPulse uses that: a filtering DNS answers "no such site" for domains on
 its blocklists, so those sites do not load on any device that uses the router's DNS.
 
+## Content filtering (as in the Starlink app)
+
+![Content filtering](images/content-filter.png)
+
+The menu bar popover and **Settings › Router** offer the Starlink app's three options: **No
+filtering**, **Malware** and **Malware and adult content**. Per Starlink's help center, the feature
+"works by setting a custom DNS server provided by Cloudflare (Cloudflare for Families)"
+([Starlink: Content Filtering](https://starlink.com/support/article/1542bce8-8fa4-158f-5880-2dd366dec075)).
+StarPulse writes the same addresses ([Cloudflare: Set up 1.1.1.1](https://developers.cloudflare.com/1.1.1.1/setup/)):
+
+| Option | IPv4 | IPv6 |
+|---|---|---|
+| No filtering | router default (list cleared) | router default |
+| Malware | `1.1.1.2`, `1.0.0.2` | `2606:4700:4700::1112`, `2606:4700:4700::1002` |
+| Malware and adult content | `1.1.1.3`, `1.0.0.3` | `2606:4700:4700::1113`, `2606:4700:4700::1003` |
+
+Choose an option and press **Save**. The change needs your Starlink sign-in, goes only to the router
+on your account, and is read back from the router afterwards. A filter chosen here also becomes the DNS
+that DNS rules return the network to.
+
 ## Network presets (set on the router)
 
 | Preset | Blocks | IPv4 servers |

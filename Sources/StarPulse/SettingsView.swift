@@ -13,7 +13,7 @@ struct SettingsView: View {
                 .frame(width: 300).padding(.top, 16).padding(.bottom, 4)
             Group {
                 switch pane {
-                case "router": RouterSettingsPane(store: store)
+                case "router": RouterSettingsPane(store: store, account: account)
                 case "app": AppSettingsPane(account: account)
                 default: StarlinkSettingsPane(store: store, account: account)
                 }
@@ -141,11 +141,13 @@ private struct MaintenanceRow: View {
 
 struct RouterSettingsPane: View {
     var store: TelemetryStore
+    var account: AccountStore
     @AppStorage(SettingsKey.routerHost) private var routerHost = ""
 
     var body: some View {
         Form {
             if let config = store.routerConfig {
+                Section("Content filtering") { ContentFilterPicker(store: store, account: account) }
                 Section("Networks") {
                     ForEach(config.networks, id: \.ssid) { network in
                         SettingRow(title: network.ssid, detail: "\(network.security) · password managed in the Starlink app") {

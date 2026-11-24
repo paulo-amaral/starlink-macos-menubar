@@ -92,6 +92,14 @@ counts against your data plan. A label says whether the test ran over Starlink: 
 public address Cloudflare saw against SpaceX's address list (AS14593), so a VPN or another
 connection shows as "Not measured over Starlink".
 
+## Content filtering
+
+![Content filtering](images/content-filter.png)
+
+The Starlink app's content filter, from the menu bar: No filtering, Malware, or Malware and adult
+content. Pick one and press Save. The same control is in Settings › Router. See
+[DNS filtering](dns-filtering.md#content-filtering-as-in-the-starlink-app).
+
 ## Network: devices
 
 ![Devices](images/network-devices.png)

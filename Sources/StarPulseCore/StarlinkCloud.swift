@@ -127,6 +127,15 @@ public actor StarlinkCloud {
         }
     }
 
+    /// The Starlink app's Content Filtering: a Cloudflare preset, or the router's default DNS.
+    public func setContentFilter(_ filter: ContentFilter, readRouterId: @escaping @Sendable () async throws -> String) async throws {
+        try await serialized {
+            let target = try await self.verifiedTarget(readRouterId)
+            let body = try filter.preset.map { try DnsWrite.request(targetId: target, nameservers: $0.servers) } ?? DnsWrite.clear(targetId: target)
+            try await self.sendDeviceRequest(body)
+        }
+    }
+
     /// Reboot or obstruction-map reset through the account. The dish that answered on the LAN must
     /// be one of the account's dishes, as with the router; the request goes to the account's ID.
     public func dishMaintenance(_ action: DishMaintenance, lanDishId: String) async throws {

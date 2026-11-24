@@ -4,13 +4,14 @@ import Foundation
 /// DNS filtering services the router can use. Addresses from each provider's official page
 /// (checked 2026-11-24); the router takes at most four, so two IPv4 and two IPv6 each.
 public enum DnsPreset: String, Codable, Sendable, CaseIterable, Identifiable {
-    case cloudflareFamilies, quad9, dnsforgeNormal, dnsforgeClean, dnsforgeHard
+    case cloudflareFamilies, cloudflareMalware, quad9, dnsforgeNormal, dnsforgeClean, dnsforgeHard
 
     public var id: String { rawValue }
 
     public var name: String {
         switch self {
         case .cloudflareFamilies: "Cloudflare for Families"
+        case .cloudflareMalware: "Cloudflare Malware"
         case .quad9: "Quad9"
         case .dnsforgeNormal: "dnsforge Normal"
         case .dnsforgeClean: "dnsforge Clean"
@@ -21,6 +22,7 @@ public enum DnsPreset: String, Codable, Sendable, CaseIterable, Identifiable {
     public var blocks: String {
         switch self {
         case .cloudflareFamilies: "Malware, phishing and adult content"
+        case .cloudflareMalware: "Malware and phishing"
         case .quad9: "Malware only"
         case .dnsforgeNormal: "Ads, trackers and malware"
         case .dnsforgeClean: "Ads, trackers, malware, adult content and gambling, with SafeSearch"
@@ -31,6 +33,7 @@ public enum DnsPreset: String, Codable, Sendable, CaseIterable, Identifiable {
     public var servers: [String] {
         switch self {
         case .cloudflareFamilies: ["1.1.1.3", "1.0.0.3", "2606:4700:4700::1113", "2606:4700:4700::1003"]
+        case .cloudflareMalware: ["1.1.1.2", "1.0.0.2", "2606:4700:4700::1112", "2606:4700:4700::1002"]
         case .quad9: ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"]
         case .dnsforgeNormal: ["49.12.67.122", "91.99.154.175", "2a01:4f8:c013:29d::122", "2a01:4f8:c010:8c35::175"]
         case .dnsforgeClean: ["49.12.223.2", "49.12.43.208", "2a01:4f8:c17:4fbc::2", "2a01:4f8:c012:ed89::208"]
@@ -70,6 +73,17 @@ public enum DnsWrite {
         guard (1...maxServers).contains(nameservers.count), nameservers.allSatisfy(isAddress) else {
             throw PauseError.unsafeRequest("the DNS list is not one to four valid addresses")
         }
+        return body(targetId: targetId, nameservers: nameservers)
+    }
+
+    /// Back to the router's default DNS: the apply flag with no servers. Separate from `request`,
+    /// so an empty list can never be sent by accident.
+    public static func clear(targetId: String) throws -> [UInt8] {
+        guard targetId.hasPrefix("Router-") else { throw PauseError.invalidTarget }
+        return body(targetId: targetId, nameservers: [])
+    }
+
+    private static func body(targetId: String, nameservers: [String]) -> [UInt8] {
         var request = ProtoWriter()
         request.writeString(13, targetId)
         request.writeMessage(3001) { set in
@@ -79,6 +93,45 @@ public enum DnsWrite {
             }
         }
         return request.bytes
+    }
+}
+
+/// The Starlink app's Content Filtering (Settings › Router). Per Starlink's help center it sets
+/// Cloudflare for Families DNS on the router; No Filtering leaves the router's default.
+public enum ContentFilter: String, CaseIterable, Sendable {
+    case none, malware, malwareAndAdult
+
+    public var title: String {
+        switch self {
+        case .none: "No filtering"
+        case .malware: "Malware"
+        case .malwareAndAdult: "Malware and adult content"
+        }
+    }
+
+    /// The Starlink app's own wording.
+    public var detail: String? {
+        switch self {
+        case .none: nil
+        case .malware: "Filter known malicious content."
+        case .malwareAndAdult: "Filter known adult or malicious content."
+        }
+    }
+
+    public static let helpURL = URL(string: "https://starlink.com/support/article/1542bce8-8fa4-158f-5880-2dd366dec075")!
+
+    public var preset: DnsPreset? {
+        switch self {
+        case .none: nil
+        case .malware: .cloudflareMalware
+        case .malwareAndAdult: .cloudflareFamilies
+        }
+    }
+
+    /// nil when the router uses DNS servers set some other way.
+    public static func current(_ nameservers: [String]) -> ContentFilter? {
+        if nameservers.isEmpty { return ContentFilter.none }
+        return allCases.first { $0.preset.map { DnsPreset.matching(nameservers) == $0 } ?? false }
     }
 }
 

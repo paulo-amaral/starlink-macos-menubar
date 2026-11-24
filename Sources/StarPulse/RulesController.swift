@@ -44,6 +44,13 @@ final class RulesController {
 
     private func saveIfAllowed() { if persists { file.save() } }
 
+    /// A content filter chosen by hand becomes the DNS that rules return the network to.
+    func adoptHomeDns(_ preset: DnsPreset) {
+        file.dnsBase = preset
+        file.dnsSetByStarPulse = nil
+        saveIfAllowed()
+    }
+
     func upsert(_ rule: DeviceRule) {
         if let index = file.rules.firstIndex(where: { $0.id == rule.id }) { file.rules[index] = rule } else { file.rules.append(rule) }
         saveIfAllowed()

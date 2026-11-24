@@ -132,6 +132,22 @@ final class TelemetryStore {
 
     private func makeSource() -> any DishDataSource { makeDishClient() }
 
+    /// Sets the Starlink app's Content Filtering, then reads the router back: the router, not the write, is the proof.
+    func applyContentFilter(_ filter: ContentFilter, account: AccountStore) async throws -> String {
+        try await account.setContentFilter(filter, routerHost: routerHost)
+        if let preset = filter.preset { rules.adoptHomeDns(preset) }
+        try? await Task.sleep(for: .seconds(3))
+        if let api = RouterAPI(host: routerHost), let config = try? await api.config() {
+            #if DEBUG
+            routerConfig = Anonymizer.config(config)
+            #else
+            routerConfig = config
+            #endif
+        }
+        let now = routerConfig.flatMap { ContentFilter.current($0.nameservers) }
+        return now == filter ? "\(filter.title) is on." : "Starlink accepted the change; the router has not shown it yet."
+    }
+
     /// Reboot or obstruction-map reset: over the LAN, else through the Starlink account.
     func performMaintenance(_ action: DishMaintenance, account: AccountStore) async throws -> DishMaintenance.Route {
         let dish = makeDishClient()

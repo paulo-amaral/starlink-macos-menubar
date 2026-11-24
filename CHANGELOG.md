@@ -4,6 +4,13 @@ All notable changes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Content filtering, as in the Starlink app (No filtering, Malware, Malware and adult content), from
+  the menu bar popover and Settings › Router. Pick an option and Save; it is sent through your Starlink
+  account after the router check, then read back from the router.
+
 ## [0.1.2] - 2026-11-24
 
 ### Added

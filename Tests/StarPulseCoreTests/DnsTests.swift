@@ -55,3 +55,22 @@ import Testing
     let file = try JSONDecoder().decode(RulesFile.self, from: Data(old.utf8))
     #expect(file.dnsBase == .cloudflareFamilies)
 }
+
+// The Starlink app's Content Filtering is Cloudflare DNS on the router (Starlink help center,
+// "Content Filtering"); No Filtering is the router's default, an empty list.
+@Test func contentFilterMatchesTheStarlinkAppOptions() {
+    #expect(ContentFilter.current([]) == ContentFilter.none)
+    #expect(ContentFilter.current(["1.1.1.2", "1.0.0.2", "2606:4700:4700::1112", "2606:4700:4700::1002"]) == .malware)
+    #expect(ContentFilter.current(["1.1.1.3", "1.0.0.3", "2606:4700:4700::1113", "2606:4700:4700::1003"]) == .malwareAndAdult)
+    #expect(ContentFilter.current(["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"]) == nil) // set elsewhere
+    #expect(ContentFilter.malware.preset == .cloudflareMalware)
+    #expect(ContentFilter.none.preset == nil)
+}
+
+@Test func clearingTheDnsListSendsOnlyTheApplyFlag() throws {
+    var expected = ProtoWriter()
+    expected.writeString(13, "Router-1")
+    expected.writeMessage(3001) { set in set.writeMessage(1) { wifi in wifi.writeBool(1054, true) } }
+    #expect(try DnsWrite.clear(targetId: "Router-1") == expected.bytes)
+    #expect(throws: PauseError.invalidTarget) { try DnsWrite.clear(targetId: "ut123") }
+}

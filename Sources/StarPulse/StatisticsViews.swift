@@ -103,69 +103,6 @@ struct StatisticsCards: View {
     }
 }
 
-struct ObstructionMapView: View {
-    var map: ObstructionMap
-
-    var body: some View {
-        Canvas { context, size in
-            guard !map.isEmpty else { return }
-            let cell = min(size.width, size.height) / CGFloat(map.cols)
-            let radius = Double(map.cols) / 2
-            for row in 0..<map.rows { for col in 0..<map.cols {
-                // Only the polar disc is meaningful; the corners hold no directions.
-                guard hypot(Double(col) + 0.5 - radius, Double(row) + 0.5 - radius) <= radius else { continue }
-                let color: Color = switch map.kind(row: row, col: col) {
-                case .clear: Theme.skyClear
-                case .partial: Theme.skyPartial
-                case .obstructed: Theme.skyObstructed
-                case .unmapped: Theme.skyUnmapped.opacity(0.35)
-                }
-                context.fill(Path(CGRect(x: CGFloat(col) * cell, y: CGFloat(row) * cell, width: cell + 0.3, height: cell + 0.3)), with: .color(color))
-            } }
-        }
-        .aspectRatio(1, contentMode: .fit)
-        .accessibilityLabel("Obstruction map")
-    }
-}
-
-struct ObstructionDetail: View {
-    var store: TelemetryStore
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let map = store.obstructionMap, !map.isEmpty {
-                ObstructionMapView(map: map).frame(maxWidth: 300).frame(maxWidth: .infinity)
-                HStack(spacing: 14) {
-                    legend("Clear", Theme.skyClear); legend("Partial", Theme.skyPartial)
-                    legend("Obstructed", Theme.skyObstructed); legend("Not seen", Theme.skyUnmapped)
-                }
-                figure("Reported by the dish", store.status.map { String(format: "%.1f %%", Double($0.fractionObstructed) * 100) } ?? "--",
-                       "The dish's own obstruction fraction")
-                figure("Mapped sky blocked", String(format: "%.1f %%", map.obstructedShareOfMapped * 100),
-                       "Share of cells the dish has observed that are partly or fully blocked")
-            } else {
-                Text("Waiting for the obstruction map from the dish.").font(Theme.ui(12)).foregroundStyle(Theme.inkSecondary)
-            }
-        }
-    }
-
-    private func legend(_ text: String, _ color: Color) -> some View {
-        HStack(spacing: 5) {
-            Circle().fill(color).frame(width: 8, height: 8)
-            Text(text).font(Theme.ui(11)).foregroundStyle(Theme.inkSecondary)
-        }
-    }
-
-    private func figure(_ label: String, _ value: String, _ help: String) -> some View {
-        HStack {
-            Text(label).font(Theme.ui(13)).foregroundStyle(Theme.ink)
-            Spacer()
-            Text(value).font(Theme.mono(12, .medium)).foregroundStyle(Theme.ink)
-        }
-        .help(help)
-    }
-}
-
 struct AlignmentDetail: View {
     var reading: AlignmentReading?
 

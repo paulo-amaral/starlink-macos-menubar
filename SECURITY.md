@@ -27,6 +27,9 @@ within 7 days.
 - **No analytics and no third-party SDKs.** The only outbound requests are to starlink.com (when
   signed in), CelesTrak (orbital elements, no location sent) and Cloudflare (speed test, only when
   you press Start).
+- **Dish maintenance asks first.** Reboot and obstruction-map reset run only after you confirm. They
+  go to the dish over the LAN, or through your signed-in account when the dish refuses local changes.
+  Factory reset is not available in StarPulse.
 - **Writes to your equipment are guarded.** Pausing a device or switching DNS goes through Starlink's
   authenticated cloud endpoint, an **unofficial, observed interface** that may change. Before sending,
   StarPulse checks that the router on the LAN is the router on your Starlink account (same device

@@ -14,7 +14,7 @@ struct SettingsView: View {
                 switch pane {
                 case "router": RouterSettingsPane(store: store)
                 case "app": AppSettingsPane(account: account)
-                default: StarlinkSettingsPane(store: store)
+                default: StarlinkSettingsPane(store: store, account: account)
                 }
             }
             .scrollContentBackground(.hidden)
@@ -46,6 +46,7 @@ private struct SettingRow<Value: View>: View {
 
 struct StarlinkSettingsPane: View {
     var store: TelemetryStore
+    var account: AccountStore
 
     var body: some View {
         Form {
@@ -62,12 +63,24 @@ struct StarlinkSettingsPane: View {
                 Section { Text("Reading the dish settings…").foregroundStyle(Theme.inkSecondary) }
             }
             Section("Maintenance") {
-                MaintenanceRow(title: "Reset obstruction map", detail: "Wipes the learned sky survey. Do this after physically moving the dish; it takes hours to relearn.", button: "Reset…")
-                MaintenanceRow(title: "Reboot Starlink", detail: "Internet drops for about 2 to 3 minutes while the dish restarts.", button: "Reboot…")
+                MaintenanceRow(title: "Reset obstruction map", detail: "Wipes the learned sky survey. Do this after physically moving the dish; it takes hours to relearn.", button: "Reset…",
+                               confirm: "The dish forgets what it has learned about your sky and maps it again over the next hours.",
+                               help: "Clear the dish's learned obstruction map") {
+                    sent(try await store.performMaintenance(.clearObstructionMap, account: account), "The obstruction map was reset.")
+                }
+                MaintenanceRow(title: "Reboot Starlink", detail: "Internet drops for about 2 to 3 minutes while the dish restarts.", button: "Reboot…",
+                               confirm: "Internet drops for about 2 to 3 minutes. StarPulse reconnects on its own.",
+                               help: "Restart the dish; internet drops for 2 to 3 minutes") {
+                    sent(try await store.performMaintenance(.reboot, account: account), "The dish is restarting.")
+                }
                 MaintenanceRow(title: "Factory reset Starlink", detail: "Wipes every dish setting back to how it shipped. Not reversible.", button: "Factory reset…")
             }
         }
         .formStyle(.grouped)
+    }
+
+    private func sent(_ route: DishMaintenance.Route, _ done: String) -> String {
+        route == .lan ? "\(done) Sent over your local network." : "\(done) Sent through your Starlink account."
     }
 
     private func sleepText(_ config: DishConfig) -> String {
@@ -85,10 +98,42 @@ private struct MaintenanceRow: View {
     var title: String
     var detail: String
     var button: String
+    var confirm = ""
+    var help = readOnlyHelp
+    /// nil keeps the row read-only; otherwise runs after confirmation and returns the outcome to show.
+    var run: (() async throws -> String)? = nil
+    @State private var asking = false
+    @State private var busy = false
+    @State private var outcome: (text: String, failed: Bool)?
 
     var body: some View {
-        SettingRow(title: title, detail: detail) {
-            Button(button) {}.disabled(true).help(readOnlyHelp)
+        VStack(alignment: .leading, spacing: 6) {
+            SettingRow(title: title, detail: detail) {
+                if busy {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Button(button) { asking = true }.disabled(run == nil).help(help)
+                }
+            }
+            if let outcome {
+                Text(outcome.text).font(Theme.ui(11)).foregroundStyle(outcome.failed ? Theme.critical : Theme.good)
+            }
+        }
+        .confirmationDialog("\(title)?", isPresented: $asking) {
+            Button(button.replacingOccurrences(of: "…", with: ""), role: .destructive) { start() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(confirm)
+        }
+    }
+
+    private func start() {
+        guard let run else { return }
+        busy = true
+        outcome = nil
+        Task {
+            do { outcome = (try await run(), false) } catch { outcome = (error.localizedDescription, true) }
+            busy = false
         }
     }
 }

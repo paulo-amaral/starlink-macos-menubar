@@ -4,6 +4,19 @@ All notable changes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] - 2026-11-24
+
+### Added
+- Settings: Reboot Starlink and Reset obstruction map, with confirmation. Sent over the LAN, or
+  through the Starlink account when the dish refuses local writes.
+
+### Changed
+- The popover's Obstructions page uses the dashboard's 3D dome, time-lapse and figures.
+- README: logo, animated demo of the menu bar and dashboard.
+
+### Removed
+- The flat obstruction map view, replaced by the 3D dome.
+
 ## [0.1.0] - 2026-11-24
 
 First public release.

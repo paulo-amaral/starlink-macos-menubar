@@ -62,6 +62,10 @@ final class AccountStore {
                                   readRouterConfig: { try await router.rawConfigResponse() })
     }
 
+    func dishMaintenance(_ action: DishMaintenance, dishId: String) async throws {
+        try await cloud.dishMaintenance(action, dishId: dishId)
+    }
+
     func setNameservers(_ servers: [String], routerHost: String) async throws {
         guard let router = RouterAPI(host: routerHost) else { throw PauseError.invalidTarget }
         try await cloud.setNameservers(servers, readRouterId: { try await router.status().deviceId })

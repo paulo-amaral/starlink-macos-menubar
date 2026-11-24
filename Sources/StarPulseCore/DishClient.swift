@@ -11,8 +11,8 @@ public protocol DishDataSource: Sendable {
 public struct DishClient: DishDataSource {
     public static let defaultURL = URL(string: "http://192.168.100.1:9201/SpaceX.API.Device.Device/Handle")!
 
-    private let url: URL
-    private let transport: HTTPTransport
+    let url: URL
+    let transport: HTTPTransport
     private let now: @Sendable () -> Date
 
     public init(url: URL = DishClient.defaultURL, transport: HTTPTransport = .live, now: @escaping @Sendable () -> Date = { Date() }) {

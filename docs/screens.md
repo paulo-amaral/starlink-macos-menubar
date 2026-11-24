@@ -135,7 +135,9 @@ Step-by-step setup of DNSBunker or dnsforge on Apple devices (configuration prof
 ![Settings: Starlink](images/settings-starlink.png)
 
 **Starlink**: snow melt, sleep schedule, software update window and deferral, as reported by the
-dish. Maintenance actions are shown but not available in StarPulse.
+dish. **Reset obstruction map** and **Reboot Starlink** work after a confirmation: StarPulse sends
+them over the local network and, when the dish refuses local changes, through your Starlink account.
+Factory reset is shown but not available.
 
 ![Settings: Router](images/settings-router.png)
 

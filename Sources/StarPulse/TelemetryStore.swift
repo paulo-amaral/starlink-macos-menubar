@@ -123,7 +123,18 @@ final class TelemetryStore {
         }
     }
 
-    private func makeSource() -> any DishDataSource {
+    private func makeSource() -> any DishDataSource { makeDishClient() }
+
+    /// Reboot or obstruction-map reset: over the LAN, else through the Starlink account.
+    func performMaintenance(_ action: DishMaintenance, account: AccountStore) async throws -> DishMaintenance.Route {
+        let dish = makeDishClient()
+        let dishId = status?.deviceId ?? ""
+        let local: @Sendable () async throws -> Void = { try await dish.perform(action) }
+        let viaCloud: @Sendable () async throws -> Void = { try await account.dishMaintenance(action, dishId: dishId) }
+        return try await DishMaintenance.run(local: local, cloud: account.isConnected ? viaCloud : nil)
+    }
+
+    private func makeDishClient() -> DishClient {
         let host = (UserDefaults.standard.string(forKey: SettingsKey.host) ?? "").trimmingCharacters(in: .whitespaces)
         let url = URL(string: "http://\(host.isEmpty ? "192.168.100.1" : host):9201/SpaceX.API.Device.Device/Handle")
         return DishClient(url: url ?? DishClient.defaultURL)

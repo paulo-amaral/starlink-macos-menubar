@@ -42,9 +42,3 @@ extension DishClient {
         _ = try await LocalGrpc.call(url: url, field: action.rawValue, transport: transport)
     }
 }
-
-extension StarlinkCloud {
-    public func dishMaintenance(_ action: DishMaintenance, dishId: String) async throws {
-        try await sendDeviceRequest(try action.cloudRequest(dishId: dishId))
-    }
-}

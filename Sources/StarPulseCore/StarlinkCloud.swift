@@ -127,6 +127,15 @@ public actor StarlinkCloud {
         }
     }
 
+    /// Reboot or obstruction-map reset through the account. The dish that answered on the LAN must
+    /// be one of the account's dishes, as with the router; the request goes to the account's ID.
+    public func dishMaintenance(_ action: DishMaintenance, lanDishId: String) async throws {
+        try await serialized {
+            let target = try Self.requireAccountDish(lan: lanDishId, account: try await self.accountDishIds())
+            try await self.sendDeviceRequest(try action.cloudRequest(dishId: target))
+        }
+    }
+
     /// The account's router, confirmed to be the one answering on this LAN. Writes are built from or
     /// decided on LAN reads, and anything on the network can answer at the router's address.
     private func verifiedTarget(_ readRouterId: @Sendable () async throws -> String) async throws -> String {

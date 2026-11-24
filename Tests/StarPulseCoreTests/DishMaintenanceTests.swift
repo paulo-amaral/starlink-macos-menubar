@@ -36,3 +36,20 @@ private final class Counter: @unchecked Sendable {
     var value: Int { lock.withLock { count } }
     func add() { lock.withLock { count += 1 } }
 }
+
+@Test func accountDishesComeFromTheTelemetry() {
+    let telemetry: [String: Any] = ["data": [
+        "columnNamesByDeviceType": ["r": ["DeviceType", "DeviceId"], "u": ["DeviceType", "DeviceId"]],
+        "values": [["u", "ut0158168c-42207c02-5946ca71"], ["r", "Router-main"]],
+    ]]
+    #expect(StarlinkCloud.dishIds(fromTelemetry: telemetry) == ["ut0158168c-42207c02-5946ca71"])
+    #expect(StarlinkCloud.dishIds(fromTelemetry: ["data": [:]]).isEmpty)
+}
+
+// Same rule as the router: the dish that answered on the LAN must be one on the account.
+@Test func maintenanceRequiresTheLanDishToBeOnTheAccount() throws {
+    let account = ["ut0158168c-42207c02-5946ca71"]
+    #expect(try StarlinkCloud.requireAccountDish(lan: "ut0158168c-42207c02-5946CA71", account: account) == "ut0158168c-42207c02-5946ca71")
+    #expect(throws: PauseError.otherDish) { try StarlinkCloud.requireAccountDish(lan: "ut00000000-00000000-00000000", account: account) }
+    #expect(throws: PauseError.otherDish) { try StarlinkCloud.requireAccountDish(lan: "", account: account) }
+}

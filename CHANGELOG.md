@@ -10,6 +10,10 @@ All notable changes are documented here. The format follows
 - Settings: Reboot Starlink and Reset obstruction map, with confirmation. Sent over the LAN, or
   through the Starlink account when the dish refuses local writes.
 
+### Security
+- Dish maintenance through the account is sent only when the dish on the LAN is one of the
+  account's dishes, matching the router check.
+
 ### Changed
 - The popover's Obstructions page uses the dashboard's 3D dome, time-lapse and figures.
 - README: logo, animated demo of the menu bar and dashboard.

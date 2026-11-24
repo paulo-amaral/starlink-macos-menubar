@@ -63,7 +63,7 @@ final class AccountStore {
     }
 
     func dishMaintenance(_ action: DishMaintenance, dishId: String) async throws {
-        try await cloud.dishMaintenance(action, dishId: dishId)
+        try await cloud.dishMaintenance(action, lanDishId: dishId)
     }
 
     func setNameservers(_ servers: [String], routerHost: String) async throws {

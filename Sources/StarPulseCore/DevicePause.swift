@@ -6,6 +6,7 @@ public enum PauseError: Error, Equatable, LocalizedError {
     case unsafeRequest(String)
     case noController
     case otherRouter
+    case otherDish
 
     public var errorDescription: String? {
         switch self {
@@ -14,6 +15,7 @@ public enum PauseError: Error, Equatable, LocalizedError {
         case .unsafeRequest(let reason): "The change was not sent because it would have altered more than this device (\(reason))."
         case .noController: "Starlink has not reported your router yet. Try again once it checks in."
         case .otherRouter: "The router on this network is not the one on your Starlink account, so nothing was changed."
+        case .otherDish: "The dish on this network is not one on your Starlink account, so nothing was sent."
         }
     }
 }
@@ -127,6 +129,14 @@ extension StarlinkCloud {
     /// The router to change: the one zero hops from the controller in the account's telemetry
     /// (Dishylink cloud/starlinkCloudHandler.ts). Never cached, because a write must not act on a stale answer.
     public func controllerRouterId() async throws -> String {
+        guard let id = Self.controllerId(fromTelemetry: try await telemetry()) else { throw PauseError.noController }
+        return id
+    }
+
+    /// The account's dishes ("ut…"), from the same telemetry. Never cached, for the same reason.
+    func accountDishIds() async throws -> [String] { Self.dishIds(fromTelemetry: try await telemetry()) }
+
+    private func telemetry() async throws -> Any {
         let account = try await account()
         guard let accountNumber = account.accountReference else { throw CloudError.noServiceLine }
         let cookie = try await sessionCookie()
@@ -137,8 +147,23 @@ extension StarlinkCloud {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: ["accountNumber": accountNumber])
         let data = try await sendChecked(request, label: "telemetry")
-        guard let id = Self.controllerId(fromTelemetry: try JSONSerialization.jsonObject(with: data)) else { throw PauseError.noController }
-        return id
+        return try JSONSerialization.jsonObject(with: data)
+    }
+
+    static func dishIds(fromTelemetry telemetry: Any) -> [String] {
+        guard let data = (telemetry as? [String: Any])?["data"] as? [String: Any],
+              let legends = data["columnNamesByDeviceType"] as? [String: [String]],
+              let rows = data["values"] as? [[Any]], let idColumn = legends["u"]?.firstIndex(of: "DeviceId") else { return [] }
+        return rows.compactMap { row in
+            guard row.first as? String == "u", row.indices.contains(idColumn), let id = row[idColumn] as? String, !id.isEmpty else { return nil }
+            return id
+        }
+    }
+
+    /// The account's own spelling of the dish that answered on the LAN.
+    static func requireAccountDish(lan: String, account: [String]) throws -> String {
+        guard !lan.isEmpty, let match = account.first(where: { $0.caseInsensitiveCompare(lan) == .orderedSame }) else { throw PauseError.otherDish }
+        return match
     }
 
     static func controllerId(fromTelemetry telemetry: Any) -> String? {

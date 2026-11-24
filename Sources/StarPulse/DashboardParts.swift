@@ -207,6 +207,34 @@ struct PowerCard: View {
 struct ObstructionsCard: View {
     var store: TelemetryStore
     var onSatellites: () -> Void = {}
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Obstructions").font(Theme.ui(15, .semibold)).foregroundStyle(Theme.ink)
+                Spacer()
+                SatelliteLink(action: onSatellites)
+            }
+            ObstructionsSummary(store: store, domeHeight: 280)
+        }
+        .padding(16)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.hairline))
+    }
+}
+
+struct SatelliteLink: View {
+    var action: () -> Void
+    var body: some View {
+        Button("Live satellite view ›", action: action).buttonStyle(.plain).font(Theme.ui(12, .semibold)).foregroundStyle(Theme.accent)
+            .help("Open the live view of Starlink satellites over your obstruction map")
+    }
+}
+
+/// The 3D dome with its time-lapse, legend and figures, shared by the dashboard card and the popover page.
+struct ObstructionsSummary: View {
+    var store: TelemetryStore
+    var domeHeight: CGFloat
     @State private var rotating = true
     /// nil shows the live map; otherwise the index of a stored hourly frame.
     @State private var frameIndex: Int?
@@ -215,18 +243,12 @@ struct ObstructionsCard: View {
         let status = store.status
         let percent = Double(status?.fractionObstructed ?? 0) * 100
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Obstructions").font(Theme.ui(15, .semibold)).foregroundStyle(Theme.ink)
-                Spacer()
-                Button("Live satellite view ›", action: onSatellites).buttonStyle(.plain).font(Theme.ui(12, .semibold)).foregroundStyle(Theme.accent)
-                    .help("Open the live view of Starlink satellites over your obstruction map")
-            }
             if let live = store.obstructionMap, !live.isEmpty {
                 let map = frameIndex.flatMap { store.snapshots.indices.contains($0) ? store.snapshots[$0].map : nil } ?? live
                 ZStack(alignment: .topTrailing) {
                     SkySceneView(mode: .dome, map: map, boresightAzimuthDeg: Double(status?.boresightAzimuthDeg ?? 0),
                                  boresightElevationDeg: Double(status?.boresightElevationDeg ?? 90), rotating: rotating)
-                        .frame(height: 280).clipShape(RoundedRectangle(cornerRadius: 10))
+                        .frame(height: domeHeight).clipShape(RoundedRectangle(cornerRadius: 10))
                     Button { rotating.toggle() } label: { Image(systemName: rotating ? "pause.fill" : "play.fill").frame(width: 28, height: 28) }
                         .buttonStyle(.plain).foregroundStyle(Theme.ink).padding(6)
                         .help(rotating ? "Stop the dome turning" : "Turn the dome slowly").accessibilityLabel(rotating ? "Stop rotation" : "Start rotation")
@@ -249,9 +271,6 @@ struct ObstructionsCard: View {
                 .padding(12).frame(maxWidth: .infinity, alignment: .leading)
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline))
         }
-        .padding(16)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.hairline))
     }
 
     /// Scrubber over the hourly frames with LIVE as the last stop, as in Dishylink's ObstructionTimeLapse.

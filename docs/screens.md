@@ -55,8 +55,9 @@ for the selected window, and the distribution of both.
 
 ![Obstructions](images/obstructions.png)
 
-The dish's own obstruction map as a flat sky plot: clear, partial, obstructed and not yet seen
-areas. It compares the share the dish reports with the share of the mapped sky that is blocked.
+The same view as the dashboard card, sized for the popover: the dish's obstruction map as a 3D dome
+you can orbit and zoom, the hourly time-lapse, the share of sky obstructed, how long the dish has
+been mapping, and a link to the live satellite view.
 
 ## Satellites
 

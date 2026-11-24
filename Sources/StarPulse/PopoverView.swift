@@ -212,7 +212,11 @@ struct PopoverView: View {
         switch page {
         case .statistics: StatisticsCards(store: store) { path.append(.detail($0)) }
         case .network: NetworkPanel(store: store, account: account)
-        case .obstructions: ObstructionDetail(store: store)
+        case .obstructions:
+            VStack(alignment: .trailing, spacing: 8) {
+                SatelliteLink { path.append(.satellites) }
+                ObstructionsSummary(store: store, domeHeight: 300)
+            }
         case .alignment: AlignmentDetail(reading: store.alignment)
         case .speedTest: SpeedTestView(model: store.speedTest, store: store)
         case .satellites: SatelliteView(store: store, account: account)

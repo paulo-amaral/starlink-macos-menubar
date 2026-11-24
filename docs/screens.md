@@ -42,7 +42,9 @@ The dock at the bottom opens the other panels.
 ![Statistics](images/statistics.png)
 
 Cards in the style of the Starlink app: ping success, latency (median), power (average), throughput
-(download average) and events. Each card opens its detail view.
+(download average) and events. Each card opens its detail view. The throughput detail adds **Throughput statistics**: peak and
+average download and upload for today, 7 days, this month or 30 days, from data collected while
+StarPulse runs and kept for 62 days.
 
 ## Latency detail
 

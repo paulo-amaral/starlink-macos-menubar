@@ -56,6 +56,9 @@ final class TelemetryStore {
     var obstructionMap: ObstructionMap?
     /// Hourly frames of the obstruction map for the time-lapse (bounded file, see SnapshotStore).
     var snapshots: [ObstructionSnapshot] = SnapshotStore.standard.load()
+    /// Daily peak and average throughput, kept for 62 days (see ThroughputLedger).
+    var throughputLedger = ThroughputLedgerStore.standard.load()
+    private var ledgerSavedAt = Date.distantPast
     var dishConfig: DishConfig?
     var routerConfig: RouterConfig?
     var routerStatus: RouterStatus?
@@ -196,6 +199,12 @@ final class TelemetryStore {
             if includeHistory || samples.isEmpty {
                 let history = try await source.history()
                 samples = history.samples
+                throughputLedger.ingest(history.samples)
+                // At most one small write every five minutes.
+                if Date().timeIntervalSince(ledgerSavedAt) > 300 {
+                    ThroughputLedgerStore.standard.save(throughputLedger)
+                    ledgerSavedAt = Date()
+                }
                 latencyHistory.ingestDish(history)
                 events = history.events.sorted { $0.startTimestampNs > $1.startTimestampNs }
             }

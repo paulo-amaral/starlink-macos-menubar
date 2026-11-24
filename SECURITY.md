@@ -22,7 +22,7 @@ within 7 days.
 - **Local network first.** Telemetry comes from the dish (`192.168.100.1:9201`) and router
   (`:9001`) over your LAN. The router's Wi-Fi password is never read, stored or displayed.
 - **Minimal disk use.** Files written: the session cookie (Keychain), preferences, one fixed cache of
-  orbital elements (about 1.8 MB, overwritten), up to 48 hourly obstruction snapshots (about 250 KB),
+  orbital elements (about 1.8 MB, overwritten), up to 48 hourly obstruction snapshots (about 250 KB), daily throughput peaks and averages for at most 62 days (under 10 KB),
   and `rules.json` (rules and per-day byte counts, at most 40 days). No telemetry or browsing logs.
 - **No analytics and no third-party SDKs.** The only outbound requests are to starlink.com (when
   signed in), CelesTrak (orbital elements, no location sent), and, only when you press Start on the

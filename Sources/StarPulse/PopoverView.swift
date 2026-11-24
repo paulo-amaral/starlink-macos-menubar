@@ -226,7 +226,7 @@ struct PopoverView: View {
             switch metric {
             case .ping, .latency: LatencyChart(samples: store.samples)
             case .power: PowerChart(samples: store.samples)
-            case .throughput: ThroughputChart(samples: store.samples)
+            case .throughput: VStack(spacing: 12) { ThroughputChart(samples: store.samples); ThroughputStatsCard(store: store) }
             case .events: EventsList(events: store.events, limit: 30)
             }
         }

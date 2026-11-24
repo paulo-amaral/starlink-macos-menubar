@@ -126,3 +126,41 @@ struct PowerChart: View {
         }
     }
 }
+
+/// Peak and average throughput over a chosen period (Dishylink issue #104).
+struct ThroughputStatsCard: View {
+    var store: TelemetryStore
+    @State private var period = ThroughputLedger.Period.today
+    @AppStorage(SettingsKey.rateUnit) private var rateUnit = RateUnit.automatic.rawValue
+
+    var body: some View {
+        let summary = store.throughputLedger.summary(period, now: Date())
+        Card(title: "Throughput statistics") {
+            VStack(alignment: .leading, spacing: 10) {
+                AppSegmented(selection: $period, options: ThroughputLedger.Period.allCases.map { ($0, $0.rawValue) },
+                              help: "Period the peak and average figures cover")
+                if let summary {
+                    Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
+                        GridRow { Text(""); header("Peak"); header("Average") }
+                        GridRow { label("Download", Theme.down); value(summary.maxDownBps); value(summary.averageDownBps) }
+                        GridRow { label("Upload", Theme.up); value(summary.maxUpBps); value(summary.averageUpBps) }
+                    }
+                    Text("From \(Format.duration(TimeInterval(summary.seconds))) of dish data collected while StarPulse was running. Kept for 62 days on this Mac.")
+                        .font(Theme.ui(10)).foregroundStyle(Theme.inkMuted).fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("No data for this period yet. Figures build up while StarPulse is running.")
+                        .font(Theme.ui(11)).foregroundStyle(Theme.inkSecondary)
+                }
+            }
+        }
+    }
+
+    private func header(_ text: String) -> some View { Text(text).font(Theme.ui(10, .semibold)).foregroundStyle(Theme.inkSecondary) }
+    private func label(_ text: String, _ color: Color) -> some View {
+        HStack(spacing: 5) { Circle().fill(color).frame(width: 7, height: 7); Text(text).font(Theme.ui(12)).foregroundStyle(Theme.ink) }
+    }
+    private func value(_ bps: Double) -> some View {
+        let rate = Format.rate(Float(bps), unit: RateUnit(rawValue: rateUnit) ?? .automatic)
+        return Text("\(rate.value) \(rate.unit)").font(Theme.mono(12, .medium)).foregroundStyle(Theme.ink)
+    }
+}

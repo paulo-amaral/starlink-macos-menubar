@@ -4,9 +4,11 @@ All notable changes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.2] - 2026-11-24
 
 ### Added
+- Throughput statistics: peak and average download and upload for today, 7 days, this month or
+  30 days, kept for 62 days on this Mac (#104).
 - Alignment: a 3D view of the dish inside a glowing outline of where it should point, with turn and
   tilt steps when it needs adjusting.
 - Speed test: says whether it ran over Starlink (Dishylink issue #71).

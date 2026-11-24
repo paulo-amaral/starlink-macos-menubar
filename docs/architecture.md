@@ -60,6 +60,7 @@ The router's `get_ping` request is never sent: on the Starlink router it restart
 | Starlink session cookie | Keychain |
 | Preferences | `UserDefaults` (`app.starpulse.mac`) |
 | Orbital elements cache (one file, overwritten) | `~/Library/Caches` |
+| Daily throughput peaks and averages (62 days at most, under 10 KB) | `~/Library/Application Support/app.starpulse.mac/` |
 | Obstruction snapshots (48 at most) | `~/Library/Application Support/app.starpulse.mac/` |
 | Rules and per-day usage (`rules.json`) | `~/Library/Application Support/app.starpulse.mac/` |
 

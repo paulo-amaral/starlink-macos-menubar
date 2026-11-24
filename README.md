@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/popover.png" width="360" alt="StarPulse menu bar popover showing Starlink status, latency and throughput">
+<img src="docs/images/logo.png" width="160" alt="StarPulse logo: a dotted sky dome over a dish with a satellite link">
 
 # StarPulse: Starlink monitor for the Mac menu bar
 
@@ -24,6 +24,14 @@ device pause and DNS filtering rules.**
 > [!IMPORTANT]
 > StarPulse is an unofficial, independent project with no affiliation to SpaceX or Starlink.
 > Starlink is a trademark of Space Exploration Technologies Corp.
+
+<p align="center">
+  <img src="docs/images/menubar.png" width="470" alt="StarPulse in the macOS menu bar: Online, 45 ms latency, 100% ping success, 5.1 Mb/s download">
+</p>
+
+<p align="center">
+  <img src="docs/images/popover.png" width="380" alt="StarPulse menu bar popover with status, obstruction alert and shortcuts">
+</p>
 
 ![StarPulse dashboard with live tiles, throughput and latency charts, power, 3D obstruction dome and events](docs/images/dashboard.png)
 

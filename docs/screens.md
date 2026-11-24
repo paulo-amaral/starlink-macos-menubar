@@ -4,6 +4,13 @@ All screenshots come from a debug build in anonymised mode (`debugAnonymize`). D
 MAC addresses, the dish ID, the account and the location are replaced with sample values; the
 telemetry is real.
 
+## Menu bar
+
+![Menu bar readouts](images/menubar.png)
+
+The status item shows the readouts you pick in Settings → App: connection status, latency, ping
+success, throughput and power draw. Click it to open the popover.
+
 ## Menu bar popover
 
 ![Popover](images/popover.png)

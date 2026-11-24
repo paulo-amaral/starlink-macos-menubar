@@ -26,10 +26,6 @@ device pause and DNS filtering rules.**
 > Starlink is a trademark of Space Exploration Technologies Corp.
 
 <p align="center">
-  <img src="docs/images/menubar.png" width="470" alt="StarPulse in the macOS menu bar: Online, 45 ms latency, 100% ping success, 5.1 Mb/s download">
-</p>
-
-<p align="center">
   <img src="docs/images/popover.png" width="380" alt="StarPulse menu bar popover with status, obstruction alert and shortcuts">
 </p>
 

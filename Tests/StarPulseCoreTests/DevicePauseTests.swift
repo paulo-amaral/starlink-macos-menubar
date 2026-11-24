@@ -82,3 +82,22 @@ private func sentConfigs(_ request: [UInt8]) throws -> (target: String, configs:
     #expect(StarlinkCloud.controllerId(fromTelemetry: lone) == "Router-only")
     #expect(StarlinkCloud.controllerId(fromTelemetry: ["data": [:]]) == nil)
 }
+
+@Test func routerStatusCarriesItsDeviceId() throws {
+    var info = ProtoWriter()
+    info.writeBytes(1, Array("Router-010000000000000001B31340".utf8))
+    var status = ProtoWriter()
+    status.writeBytes(3, info.bytes)
+    var envelope = ProtoWriter()
+    envelope.writeBytes(3004, status.bytes)
+    #expect(try RouterDecoder.decodeStatus(response: envelope.bytes).deviceId == "Router-010000000000000001B31340")
+}
+
+// A write is built from LAN reads, so the router on the LAN must be the account's router.
+@Test func writesRequireTheLanRouterToBeTheAccountRouter() throws {
+    try StarlinkCloud.requireSameRouter(lan: "Router-010000000000000001b31340", account: "Router-010000000000000001B31340")
+    #expect(throws: PauseError.otherRouter) {
+        try StarlinkCloud.requireSameRouter(lan: "Router-01000000000000000049375B", account: "Router-010000000000000001B31340")
+    }
+    #expect(throws: PauseError.otherRouter) { try StarlinkCloud.requireSameRouter(lan: "", account: "Router-010000000000000001B31340") }
+}

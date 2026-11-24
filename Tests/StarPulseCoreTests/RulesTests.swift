@@ -56,25 +56,41 @@ private func date(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
 @Test func plannerPausesHeldDevicesAndOnlyReleasesItsOwn() {
     var file = RulesFile()
     // Device 1 held and free: pause. Device 2 held but this Mac: never. Device 3 paused by the Starlink app, not held: left alone.
-    var actions = RulePlanner.plan(held: [1, 2], blocked: [3], present: [1, 2, 3], protected: [2], file: &file)
+    let t0 = Date(timeIntervalSince1970: 1_000_000)
+    var actions = RulePlanner.plan(held: [1, 2], blocked: [3], present: [1, 2, 3], protected: [2], now: t0, file: &file)
     #expect(actions == [.pause(1)])
-    file.pausedByRules.insert(1)
+    file.recordPause(1, at: t0)
     // The window opens: device 1 is released; device 3 still untouched.
-    actions = RulePlanner.plan(held: [], blocked: [1, 3], present: [1, 2, 3], protected: [2], file: &file)
+    actions = RulePlanner.plan(held: [], blocked: [1, 3], present: [1, 2, 3], protected: [2], now: t0 + 60, file: &file)
     #expect(actions == [.resume(1)])
 }
 
 @Test func plannerRespectsAManualResumeWhileHeld() {
     var file = RulesFile()
-    file.pausedByRules = [1]
-    // Someone resumed device 1 by hand while the rule still holds it: no re-pause.
-    #expect(RulePlanner.plan(held: [1], blocked: [], present: [1], protected: [], file: &file).isEmpty)
+    let t0 = Date(timeIntervalSince1970: 1_000_000)
+    file.recordPause(1, at: t0)
+    // The router shows the pause, then someone resumes device 1 by hand while the rule holds it: no re-pause.
+    #expect(RulePlanner.plan(held: [1], blocked: [1], present: [1], protected: [], now: t0 + 5, file: &file).isEmpty)
+    #expect(RulePlanner.plan(held: [1], blocked: [], present: [1], protected: [], now: t0 + 10, file: &file).isEmpty)
     #expect(file.overridden == [1])
-    #expect(RulePlanner.plan(held: [1], blocked: [], present: [1], protected: [], file: &file).isEmpty)
+    #expect(RulePlanner.plan(held: [1], blocked: [], present: [1], protected: [], now: t0 + 20, file: &file).isEmpty)
     // Once no rule holds it, the override clears; a later hold pauses it again.
-    _ = RulePlanner.plan(held: [], blocked: [], present: [1], protected: [], file: &file)
+    _ = RulePlanner.plan(held: [], blocked: [], present: [1], protected: [], now: t0 + 30, file: &file)
     #expect(file.overridden.isEmpty)
-    #expect(RulePlanner.plan(held: [1], blocked: [], present: [1], protected: [], file: &file) == [.pause(1)])
+    #expect(RulePlanner.plan(held: [1], blocked: [], present: [1], protected: [], now: t0 + 40, file: &file) == [.pause(1)])
+}
+
+// The router can take a while to show a pause; that gap must not read as a manual resume.
+@Test func plannerWaitsForThePauseToShowBeforeCallingItAnOverride() {
+    var file = RulesFile()
+    let t0 = Date(timeIntervalSince1970: 1_000_000)
+    file.recordPause(1, at: t0)
+    #expect(RulePlanner.plan(held: [1], blocked: [], present: [1], protected: [], now: t0 + 5, file: &file).isEmpty)
+    #expect(file.overridden.isEmpty)
+    #expect(file.pausedByRules == [1])
+    // Never shown after the grace period: the pause did not take, so it is sent again.
+    #expect(RulePlanner.plan(held: [1], blocked: [], present: [1], protected: [], now: t0 + 200, file: &file) == [.pause(1)])
+    #expect(file.overridden.isEmpty)
 }
 
 @Test func rulesFileRoundTrips() throws {

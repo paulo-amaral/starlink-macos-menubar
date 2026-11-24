@@ -161,13 +161,15 @@ public struct RulesFile: Codable, Sendable, Equatable {
     public var pausedByRules: Set<UInt32> = []
     /// Devices a person resumed by hand while a rule held them; left alone until no rule holds them.
     public var overridden: Set<UInt32> = []
+    /// Pauses StarPulse sent that the router has not shown yet, with when they were sent.
+    public var pausePending: [UInt32: Date] = [:]
     /// The network's DNS when no DNS rule is active (Cloudflare for Families unless changed).
     public var dnsBase: DnsPreset = .cloudflareFamilies
     /// The preset StarPulse last wrote, so it only ever undoes its own DNS change.
     public var dnsSetByStarPulse: DnsPreset?
     public init() {}
 
-    enum CodingKeys: String, CodingKey { case rules, usage, pausedByRules, overridden, dnsBase, dnsSetByStarPulse }
+    enum CodingKeys: String, CodingKey { case rules, usage, pausedByRules, overridden, pausePending, dnsBase, dnsSetByStarPulse }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -175,8 +177,19 @@ public struct RulesFile: Codable, Sendable, Equatable {
         usage = try c.decodeIfPresent(UsageLedger.self, forKey: .usage) ?? UsageLedger()
         pausedByRules = try c.decodeIfPresent(Set<UInt32>.self, forKey: .pausedByRules) ?? []
         overridden = try c.decodeIfPresent(Set<UInt32>.self, forKey: .overridden) ?? []
+        pausePending = try c.decodeIfPresent([UInt32: Date].self, forKey: .pausePending) ?? [:]
         dnsBase = try c.decodeIfPresent(DnsPreset.self, forKey: .dnsBase) ?? .cloudflareFamilies
         dnsSetByStarPulse = try c.decodeIfPresent(DnsPreset.self, forKey: .dnsSetByStarPulse)
+    }
+
+    public mutating func recordPause(_ id: UInt32, at now: Date) {
+        pausedByRules.insert(id)
+        pausePending[id] = now
+    }
+
+    public mutating func recordResume(_ id: UInt32) {
+        pausedByRules.remove(id)
+        pausePending[id] = nil
     }
 
     public static var standardURL: URL {
@@ -202,16 +215,28 @@ public enum RulePlanner {
     /// - blocked: devices the router reports paused right now (only devices it currently lists).
     /// - present: devices the router currently lists.
     /// - protected: devices never to touch (this Mac).
+    /// How long the router may take to show a pause before StarPulse sends it again.
+    public static let confirmGrace: TimeInterval = 120
+
     public static func plan(held: Set<UInt32>, blocked: Set<UInt32>, present: Set<UInt32>, protected: Set<UInt32>,
-                            file: inout RulesFile) -> [Action] {
+                            now: Date, file: inout RulesFile) -> [Action] {
         var actions: [Action] = []
         // A device someone resumed by hand stays resumed until no rule holds it any more.
         file.overridden = file.overridden.intersection(held)
+        for id in file.pausedByRules where blocked.contains(id) { file.pausePending[id] = nil }
         for id in file.pausedByRules where present.contains(id) && held.contains(id) && !blocked.contains(id) {
-            file.overridden.insert(id)
-            file.pausedByRules.remove(id)
+            if let sent = file.pausePending[id] {
+                // Not shown yet: wait, and only if it never shows treat the pause as lost and resend.
+                guard now.timeIntervalSince(sent) >= confirmGrace else { continue }
+                file.recordResume(id)
+            } else {
+                // The router showed this pause and now shows the device free: a person resumed it.
+                file.overridden.insert(id)
+                file.recordResume(id)
+            }
         }
-        for id in held.sorted() where present.contains(id) && !blocked.contains(id) && !protected.contains(id) && !file.overridden.contains(id) {
+        for id in held.sorted() where present.contains(id) && !blocked.contains(id) && !protected.contains(id)
+            && !file.overridden.contains(id) && !file.pausedByRules.contains(id) {
             actions.append(.pause(id))
         }
         // Only what StarPulse paused is let go; a pause made in the Starlink app is never undone here.
@@ -220,6 +245,7 @@ public enum RulePlanner {
         }
         // Released devices that are already free need no write; forget them.
         file.pausedByRules = file.pausedByRules.filter { held.contains($0) || blocked.contains($0) || !present.contains($0) }
+        file.pausePending = file.pausePending.filter { file.pausedByRules.contains($0.key) }
         return actions
     }
 }

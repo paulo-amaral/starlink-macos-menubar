@@ -3,6 +3,7 @@ import Foundation
 public struct RouterStatus: Sendable, Equatable {
     public var popLatencyMs: Float?
     public var popDropRate5m: Float?
+    public var deviceId = ""
     public var hardwareVersion = ""
     public var firmware = ""
     public init() {}
@@ -71,7 +72,12 @@ public enum RouterDecoder {
                 while let (f, w) = try info.nextField() {
                     guard w == .lengthDelimited else { try info.skip(w); continue }
                     let text = String(decoding: try info.readLengthDelimited(), as: UTF8.self)
-                    if f == 2 { status.hardwareVersion = text } else if f == 3 { status.firmware = text }
+                    switch f {
+                    case 1: status.deviceId = text
+                    case 2: status.hardwareVersion = text
+                    case 3: status.firmware = text
+                    default: break
+                    }
                 }
             default: try reader.skip(wire)
             }

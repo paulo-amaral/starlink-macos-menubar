@@ -8,7 +8,54 @@ public struct SpeedTestProgress: Sendable, Equatable {
     /// Wall-clock span of the loaded link, so latency, jitter and loss are read off the dish's own pings for exactly that window.
     public var startedAt: Date?
     public var endedAt: Date?
+    /// Phase edges, so latency under each load can be compared with idle latency.
+    public var downloadEndedAt: Date?
+    public var uploadStartedAt: Date?
     public init() {}
+}
+
+/// Latency under load against idle latency, graded on Waveform's published scale
+/// (https://www.waveform.com/tools/bufferbloat): the average idle latency, then the average while
+/// download and upload each run; the larger increase sets the grade. Pings come from the dish.
+public struct Bufferbloat: Sendable, Equatable {
+    public var idleMs: Double
+    public var downloadMs: Double?
+    public var uploadMs: Double?
+
+    /// Seconds of dish history before the run that count as idle.
+    public static let idleWindow: TimeInterval = 30
+
+    public init(idleMs: Double, downloadMs: Double?, uploadMs: Double?) {
+        self.idleMs = idleMs; self.downloadMs = downloadMs; self.uploadMs = uploadMs
+    }
+
+    public var increaseMs: Double { max(0, max(downloadMs ?? idleMs, uploadMs ?? idleMs) - idleMs) }
+
+    public var grade: String {
+        switch increaseMs {
+        case ..<5: "A+"
+        case ..<30: "A"
+        case ..<60: "B"
+        case ..<200: "C"
+        case ..<400: "D"
+        default: "F"
+        }
+    }
+
+    public static func measure(_ samples: [TelemetrySample], progress: SpeedTestProgress) -> Bufferbloat? {
+        guard let start = progress.startedAt,
+              let idle = meanLatency(samples, from: start.addingTimeInterval(-idleWindow), to: start, includingEnd: false) else { return nil }
+        let download = progress.downloadEndedAt.flatMap { meanLatency(samples, from: start, to: $0) }
+        let upload = progress.uploadStartedAt.flatMap { from in progress.endedAt.flatMap { meanLatency(samples, from: from, to: $0) } }
+        guard download != nil || upload != nil else { return nil }
+        return Bufferbloat(idleMs: idle, downloadMs: download, uploadMs: upload)
+    }
+
+    private static func meanLatency(_ samples: [TelemetrySample], from: Date, to: Date, includingEnd: Bool = true) -> Double? {
+        let values = samples.filter { $0.timestamp >= from && (includingEnd ? $0.timestamp <= to : $0.timestamp < to) }
+            .compactMap { $0.latencyMs.map(Double.init) }
+        return values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
+    }
 }
 
 /// Steady-state rate of one phase, ported from Dishylink src/lib/speedTest.ts (MIT).
@@ -157,11 +204,14 @@ public struct SpeedTester: Sendable {
         do {
             let box = LockedBox(state)
             state.downloadMbps = try await measureDownload { live in report(box.update { $0.downloadMbps = live }) }
+            state.downloadEndedAt = Date()
             report(state)
             try await Task.sleep(for: .seconds(Self.holdSeconds))
             state.phase = .upload; state.uploadMbps = nil
             box.set(state); report(state)
             try await Task.sleep(for: .seconds(Self.restSeconds))
+            state.uploadStartedAt = Date()
+            box.set(state)
             state.uploadMbps = try await measureUpload { live in report(box.update { $0.uploadMbps = live }) }
             // The window closes at the true end of upload; the idle holds below must not leak into the quality figures.
             state.endedAt = Date()

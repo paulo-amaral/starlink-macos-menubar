@@ -99,7 +99,7 @@ final class RulesController {
         busy = true
         defer { busy = false }
         do {
-            try await account.setNameservers(desired.servers)
+            try await account.setNameservers(desired.servers, routerHost: routerHost)
             // Read back: the router, not the write, is the proof.
             try? await Task.sleep(for: .seconds(3))
             let after = (try? await router.config().nameservers).flatMap(DnsPreset.matching)
@@ -130,7 +130,7 @@ final class RulesController {
         let blocked = Set(listed.filter(\.blocked).compactMap(\.clientId))
         let protected = Set(listed.filter { localAddresses.contains($0.ip) }.compactMap(\.clientId))
         let before = file
-        let actions = RulePlanner.plan(held: held, blocked: blocked, present: present, protected: protected, file: &file)
+        let actions = RulePlanner.plan(held: held, blocked: blocked, present: present, protected: protected, now: now, file: &file)
         if file != before { saveIfAllowed() }
         guard !actions.isEmpty else { return }
         busy = true
@@ -140,7 +140,7 @@ final class RulesController {
             guard let client = listed.first(where: { $0.clientId == id }) else { continue }
             do {
                 try await account.setPaused(pause, client: client, routerHost: routerHost)
-                if pause { file.pausedByRules.insert(id) } else { file.pausedByRules.remove(id) }
+                if pause { file.recordPause(id, at: now) } else { file.recordResume(id) }
                 saveIfAllowed()
                 lastError = nil
             } catch {

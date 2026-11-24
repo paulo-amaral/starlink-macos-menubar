@@ -53,7 +53,7 @@ device pause and DNS filtering rules.**
 | Device pause | Pause and resume devices, like the Starlink app (requires Starlink sign-in) |
 | Rules | Schedules, daily data limits, timers and network DNS filters |
 | DNS filtering | Cloudflare for Families, Quad9 and dnsforge presets, plus per-device guides for DNSBunker and dnsforge |
-| Speed test | Download and upload against Cloudflare, with a speedometer gauge; latency, jitter and loss from the dish |
+| Speed test | Download and upload against Cloudflare, with a speedometer gauge; latency, jitter, loss and a bufferbloat grade from the dish |
 | Settings | Dish and router settings shown read-only; menu bar readouts, theme, dish address, account |
 
 Every screen is described with a screenshot in **[docs/screens.md](docs/screens.md)**.

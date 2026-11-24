@@ -29,7 +29,8 @@ within 7 days.
   you press Start).
 - **Writes to your equipment are guarded.** Pausing a device or switching DNS goes through Starlink's
   authenticated cloud endpoint, an **unofficial, observed interface** that may change. Before sending,
-  StarPulse re-reads the router over the LAN, resends every other device's settings byte for byte,
+  StarPulse checks that the router on the LAN is the router on your Starlink account (same device
+  ID), re-reads it, resends every other device's settings byte for byte,
   verifies nothing else changed, and refuses to send otherwise. It never pauses the Mac it runs on,
   and DNS changes only happen between known presets.
 

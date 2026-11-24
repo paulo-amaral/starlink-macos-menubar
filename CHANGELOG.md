@@ -23,3 +23,13 @@ First public release.
 - Speed test against Cloudflare with a speedometer gauge.
 - Alignment check, read-only dish and router settings, Starlink account sign-in.
 - Guides to set up DNSBunker and dnsforge on individual devices.
+- Bufferbloat grade in the speed test (latency under load against idle, Waveform's scale).
+
+### Security
+- Writes to the router are refused unless the router on the LAN has the same device ID as the
+  router on the Starlink account.
+- Rule pauses wait up to 2 minutes for the router to show them before a resumed device counts as
+  a manual override; a pause that never shows is sent again.
+- Decoders no longer trap on out-of-range numbers from the LAN; cookies are kept only for
+  starlink.com and its subdomains.
+- The release app finds its fonts and manufacturer table inside the app bundle.

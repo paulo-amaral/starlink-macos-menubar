@@ -74,7 +74,9 @@ as the dish's web app: aligned while the pointing error stays under 5°.
 ![Speed test](images/speed-test.png)
 
 Download and upload against Cloudflare with a speedometer. **Advanced** shows latency, jitter and
-loss for the run, taken from the dish's own pings. The test uses about 11 seconds each way and
+loss for the run, taken from the dish's own pings, and a **bufferbloat** grade: how much the average
+latency rose while download and upload ran, compared with the 30 seconds before the test, graded A+
+to F on [Waveform's scale](https://www.waveform.com/tools/bufferbloat). The test uses about 11 seconds each way and
 counts against your data plan.
 
 ## Network: devices

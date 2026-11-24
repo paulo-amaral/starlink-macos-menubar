@@ -57,10 +57,15 @@ final class AccountStore {
     /// Pauses or resumes a device through the Starlink account; the router's current list is read over the LAN first.
     func setPaused(_ paused: Bool, client: WifiClient, routerHost: String) async throws {
         guard let clientId = client.clientId, let router = RouterAPI(host: routerHost) else { throw PauseError.unknownClient }
-        try await cloud.setPaused(paused, clientId: clientId, macAddress: client.mac) { try await router.rawConfigResponse() }
+        try await cloud.setPaused(paused, clientId: clientId, macAddress: client.mac,
+                                  readRouterId: { try await router.status().deviceId },
+                                  readRouterConfig: { try await router.rawConfigResponse() })
     }
 
-    func setNameservers(_ servers: [String]) async throws { try await cloud.setNameservers(servers) }
+    func setNameservers(_ servers: [String], routerHost: String) async throws {
+        guard let router = RouterAPI(host: routerHost) else { throw PauseError.invalidTarget }
+        try await cloud.setNameservers(servers, readRouterId: { try await router.status().deviceId })
+    }
 
     var isConnected: Bool { if case .connected = state { true } else { false } }
 

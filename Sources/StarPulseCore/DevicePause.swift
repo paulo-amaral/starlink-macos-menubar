@@ -5,6 +5,7 @@ public enum PauseError: Error, Equatable, LocalizedError {
     case invalidTarget
     case unsafeRequest(String)
     case noController
+    case otherRouter
 
     public var errorDescription: String? {
         switch self {
@@ -12,6 +13,7 @@ public enum PauseError: Error, Equatable, LocalizedError {
         case .invalidTarget: "The router to change could not be identified."
         case .unsafeRequest(let reason): "The change was not sent because it would have altered more than this device (\(reason))."
         case .noController: "Starlink has not reported your router yet. Try again once it checks in."
+        case .otherRouter: "The router on this network is not the one on your Starlink account, so nothing was changed."
         }
     }
 }

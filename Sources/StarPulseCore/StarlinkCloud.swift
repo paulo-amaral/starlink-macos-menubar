@@ -108,9 +108,11 @@ public actor StarlinkCloud {
     /// Pauses or resumes one device. The whole client list is rewritten, so the LAN read that
     /// feeds the request and the write itself run one at a time: a later change can never be
     /// built from a list that predates an earlier one.
-    public func setPaused(_ paused: Bool, clientId: UInt32, macAddress: String, readRouterConfig: @escaping @Sendable () async throws -> [UInt8]) async throws {
+    public func setPaused(_ paused: Bool, clientId: UInt32, macAddress: String,
+                          readRouterId: @escaping @Sendable () async throws -> String,
+                          readRouterConfig: @escaping @Sendable () async throws -> [UInt8]) async throws {
         try await serialized {
-            let target = try await self.controllerRouterId()
+            let target = try await self.verifiedTarget(readRouterId)
             let existing = try DevicePause.rawClientConfigs(configResponse: try await readRouterConfig())
             let body = try DevicePause.request(targetId: target, existing: existing, clientId: clientId, macAddress: macAddress, paused: paused)
             try await self.sendDeviceRequest(body)
@@ -118,11 +120,23 @@ public actor StarlinkCloud {
     }
 
     /// Points the whole network at a DNS service. Shares the one-at-a-time queue with device pauses.
-    public func setNameservers(_ nameservers: [String]) async throws {
+    public func setNameservers(_ nameservers: [String], readRouterId: @escaping @Sendable () async throws -> String) async throws {
         try await serialized {
-            let target = try await self.controllerRouterId()
+            let target = try await self.verifiedTarget(readRouterId)
             try await self.sendDeviceRequest(try DnsWrite.request(targetId: target, nameservers: nameservers))
         }
+    }
+
+    /// The account's router, confirmed to be the one answering on this LAN. Writes are built from or
+    /// decided on LAN reads, and anything on the network can answer at the router's address.
+    private func verifiedTarget(_ readRouterId: @Sendable () async throws -> String) async throws -> String {
+        let target = try await controllerRouterId()
+        try Self.requireSameRouter(lan: try await readRouterId(), account: target)
+        return target
+    }
+
+    static func requireSameRouter(lan: String, account: String) throws {
+        guard !lan.isEmpty, lan.caseInsensitiveCompare(account) == .orderedSame else { throw PauseError.otherRouter }
     }
 
     private func serialized(_ body: @escaping @Sendable () async throws -> Void) async throws {

@@ -63,6 +63,7 @@ struct SpeedTestView: View {
     var body: some View {
         let progress = model.progress
         let quality = LinkQuality.over(store.samples, from: progress.startedAt, to: progress.endedAt)
+        let bloat = Bufferbloat.measure(store.samples, progress: progress)
         VStack(spacing: 14) {
             SpeedGauge(value: gaugeValue, maximum: gaugeMaximum, color: progress.phase == .upload ? Theme.up : Theme.down)
                 .frame(height: 200)
@@ -85,12 +86,19 @@ struct SpeedTestView: View {
                 Label("Advanced", systemImage: showAdvanced ? "chevron.up" : "chevron.down")
             }
             .buttonStyle(.appCompact)
-            .help(showAdvanced ? "Hide latency, jitter and loss" : "Show latency, jitter and loss for the run")
+            .help(showAdvanced ? "Hide latency, jitter, loss and bufferbloat" : "Show latency, jitter, loss and bufferbloat for the run")
             if showAdvanced {
                 VStack(spacing: 6) {
                     detail("Latency", quality.latencyMs.map { String(format: "%.0f ms", $0) }, "Median of the dish's pings during the test")
                     detail("Jitter", quality.jitterMs.map { String(format: "%.1f ms", $0) }, "Mean change between consecutive pings")
                     detail("Loss", quality.lossPercent.map { String(format: "%.1f %%", $0) }, "Share of pings lost during the test")
+                    detail("Idle latency", bloat.map { String(format: "%.0f ms", $0.idleMs) }, "Average of the dish's pings in the 30 seconds before the test")
+                    detail("Latency under load", bloat.map { b in
+                        [b.downloadMs.map { String(format: "↓ %.0f", $0) }, b.uploadMs.map { String(format: "↑ %.0f", $0) }]
+                            .compactMap { $0 }.joined(separator: "  ") + " ms"
+                    }, "Average of the dish's pings while download and upload ran")
+                    detail("Bufferbloat", bloat.map { String(format: "%@ · +%.0f ms", $0.grade, $0.increaseMs) },
+                           "Largest rise over idle latency, graded A+ to F on Waveform's scale")
                     Text("Measured against Cloudflare. It may read lower than tests to a nearby server. The test runs about 11 seconds each way and uses data from your plan. Latency, jitter and loss come from the dish and fill in a few seconds after the run.")
                         .font(Theme.ui(10)).foregroundStyle(Theme.inkSecondary).frame(maxWidth: .infinity, alignment: .leading)
                 }

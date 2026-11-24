@@ -191,3 +191,35 @@ private func client(_ id: UInt32, rx: UInt64?, tx: UInt64?) -> WifiClient {
     #expect(quality.lossPercent == expectedLoss)
     #expect(LinkQuality.over(samples, from: nil, to: nil) == LinkQuality())
 }
+
+@Test func bufferbloatComparesLoadedLatencyWithIdle() {
+    func sample(_ second: Double, _ ms: Float?) -> TelemetrySample {
+        TelemetrySample(timestamp: Date(timeIntervalSince1970: second), latencyMs: ms, dropRate: 0, downlinkBps: 0, uplinkBps: 0, powerW: 0)
+    }
+    // Idle 20-40 ms before the run (mean 30); download 70 ms (mean); upload 40 ms (mean).
+    let samples = [sample(50, 900), sample(80, 20), sample(90, 40),
+                   sample(100, 60), sample(105, 80), sample(120, 40), sample(125, 40), sample(200, 900)]
+    var progress = SpeedTestProgress()
+    progress.startedAt = Date(timeIntervalSince1970: 100)
+    progress.downloadEndedAt = Date(timeIntervalSince1970: 110)
+    progress.uploadStartedAt = Date(timeIntervalSince1970: 118)
+    progress.endedAt = Date(timeIntervalSince1970: 130)
+    let bloat = Bufferbloat.measure(samples, progress: progress)
+    #expect(bloat?.idleMs == 30)
+    #expect(bloat?.downloadMs == 70)
+    #expect(bloat?.uploadMs == 40)
+    #expect(bloat?.increaseMs == 40)          // the larger increase, download
+    #expect(bloat?.grade == "B")
+    #expect(Bufferbloat.measure(samples, progress: SpeedTestProgress()) == nil)
+}
+
+@Test func bufferbloatGradesFollowWaveformsScale() {
+    func grade(_ increase: Double) -> String { Bufferbloat(idleMs: 30, downloadMs: 30 + increase, uploadMs: nil).grade }
+    #expect(grade(4.9) == "A+")
+    #expect(grade(5) == "A")
+    #expect(grade(59) == "B")
+    #expect(grade(199) == "C")
+    #expect(grade(399) == "D")
+    #expect(grade(400) == "F")
+    #expect(Bufferbloat(idleMs: 40, downloadMs: 30, uploadMs: nil).increaseMs == 0)
+}

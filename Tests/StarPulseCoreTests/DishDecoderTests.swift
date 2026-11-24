@@ -227,3 +227,14 @@ private func response(field: Int, _ build: (inout ProtoWriter) -> Void) -> [UInt
     let samples = DishDecoder.unrollRing(current: UInt64.max, drop: [0, 0], latency: [20, 30], down: [], up: [], power: [], now: Date())
     #expect(samples.count == 2)
 }
+
+// Manual mounts: positive turn is clockwise seen from above (azimuth grows N→E); positive tilt raises the face.
+@Test func alignmentAdviceTurnsTowardTheTarget() {
+    var status = DishStatus()
+    status.attitudeState = 1
+    status.desiredAzimuthDeg = 20; status.desiredElevationDeg = 72
+    status.boresightAzimuthDeg = 350; status.boresightElevationDeg = 66
+    let reading = AlignmentMath.compute(status)
+    #expect(abs(reading.turnClockwiseDeg - 30) < 1e-9)   // 350° → 20° the short way is 30° clockwise
+    #expect(abs(reading.raiseFaceDeg - 6) < 1e-9)
+}

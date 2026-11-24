@@ -72,8 +72,11 @@ so this is an estimate.
 
 ![Alignment](images/alignment.png)
 
-Azimuth and elevation now and as wanted by the dish, pointing error and tilt. It uses the same rule
-as the dish's web app: aligned while the pointing error stays under 5°.
+A 3D view in the style of the Starlink app: the dish at its current angle over a compass, inside a
+glowing outline of where it wants to point (white when aligned, orange when not). When it needs
+adjusting, StarPulse says how far to turn it and which way to tilt the face. Below, azimuth and
+elevation now and as wanted, pointing error and tilt. It uses the same rule as the dish's web app:
+aligned while the pointing error stays under 5°.
 
 ## Speed test
 

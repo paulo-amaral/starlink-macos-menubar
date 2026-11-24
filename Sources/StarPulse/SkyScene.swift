@@ -9,7 +9,7 @@ import SwiftUI
 /// satellite. SceneKit supplies the depth buffer, so a dot behind the dish is hidden and one in front shows.
 /// Coordinates: y is up, x is east, -z is north; the dome radius is 1.
 struct SkySceneView: NSViewRepresentable {
-    enum Mode { case dome, sky }
+    enum Mode { case dome, sky, alignment }
 
     var mode: Mode
     var map: ObstructionMap?
@@ -17,6 +17,9 @@ struct SkySceneView: NSViewRepresentable {
     var boresightElevationDeg: Double
     var satellites: [SatelliteSky] = []
     var serving: SatelliteSky?
+    /// Alignment mode: where the dish wants to point, drawn as a glowing outline.
+    var target: (azimuthDeg: Double, elevationDeg: Double)?
+    var aligned = false
     var rotating: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -27,6 +30,8 @@ struct SkySceneView: NSViewRepresentable {
         let dish = SCNNode()
         let satellites = SCNNode()
         let serving = SCNNode()
+        let target = SCNNode()
+        var lastTarget: [Double]?
         var lastMap: ObstructionMap?
         var lastBoresight: (Double, Double)?
     }
@@ -48,8 +53,12 @@ struct SkySceneView: NSViewRepresentable {
         view.defaultCameraController.maximumVerticalAngle = 85
 
         c.scene.rootNode.addChildNode(c.world)
-        [c.dome, c.dish, c.satellites, c.serving].forEach { c.world.addChildNode($0) }
-        c.world.addChildNode(Self.ground())
+        [c.dome, c.dish, c.satellites, c.serving, c.target].forEach { c.world.addChildNode($0) }
+        if mode == .alignment {
+            [c.dish, c.target].forEach { $0.scale = SCNVector3(1.6, 1.6, 1.6) }
+        } else {
+            c.world.addChildNode(Self.ground())
+        }
         c.world.addChildNode(Self.compass())
         if mode == .sky { c.scene.rootNode.addChildNode(Self.stars()) }
 
@@ -57,14 +66,25 @@ struct SkySceneView: NSViewRepresentable {
         camera.camera = SCNCamera()
         camera.camera?.fieldOfView = mode == .sky ? 48 : 38
         camera.camera?.zNear = 0.05
-        let distance: Float = mode == .sky ? 4.2 : 3.3
-        camera.position = SCNVector3(0, distance * 0.48, distance)
-        camera.look(at: SCNVector3(0, 0.25, 0))
+        let distance: Float = mode == .sky ? 4.2 : (mode == .alignment ? 3.2 : 3.3)
+        camera.position = SCNVector3(0, distance * (mode == .alignment ? 0.55 : 0.48), distance)
+        let focus = SCNVector3(0, mode == .alignment ? 0.05 : 0.25, 0)
+        camera.look(at: focus)
+        view.defaultCameraController.target = focus
+        if mode == .alignment {
+            // The target outline glows, as in the Starlink app.
+            camera.camera?.wantsHDR = true
+            // Only the outline's emission goes past 1.0, so the panel itself does not bloom.
+            camera.camera?.bloomIntensity = 1.4
+            camera.camera?.bloomThreshold = 1.0
+            camera.camera?.bloomBlurRadius = 8
+        }
         c.scene.rootNode.addChildNode(camera)
         view.pointOfView = camera
 
-        let ambient = SCNNode(); ambient.light = SCNLight(); ambient.light?.type = .ambient; ambient.light?.intensity = 350
-        let sun = SCNNode(); sun.light = SCNLight(); sun.light?.type = .directional; sun.light?.intensity = 900
+        // Alignment mode renders in HDR with bloom; softer light keeps the white panel below the glow threshold.
+        let ambient = SCNNode(); ambient.light = SCNLight(); ambient.light?.type = .ambient; ambient.light?.intensity = mode == .alignment ? 260 : 350
+        let sun = SCNNode(); sun.light = SCNLight(); sun.light?.type = .directional; sun.light?.intensity = mode == .alignment ? 520 : 900
         sun.eulerAngles = SCNVector3(-1.0, 0.6, 0)
         c.scene.rootNode.addChildNode(ambient); c.scene.rootNode.addChildNode(sun)
         updateNSView(view, context: context)
@@ -81,6 +101,12 @@ struct SkySceneView: NSViewRepresentable {
             c.lastBoresight = (boresightAzimuthDeg, boresightElevationDeg)
             c.dish.childNodes.forEach { $0.removeFromParentNode() }
             c.dish.addChildNode(Self.miniDish(azimuthDeg: boresightAzimuthDeg, elevationDeg: boresightElevationDeg))
+        }
+        let targetKey = target.map { [$0.azimuthDeg, $0.elevationDeg, aligned ? 1 : 0] }
+        if c.lastTarget != targetKey {
+            c.lastTarget = targetKey
+            c.target.childNodes.forEach { $0.removeFromParentNode() }
+            if let target { c.target.addChildNode(Self.targetOutline(azimuthDeg: target.azimuthDeg, elevationDeg: target.elevationDeg, aligned: aligned)) }
         }
         if mode == .sky {
             c.satellites.geometry = Self.satellitePoints(satellites)
@@ -176,12 +202,40 @@ struct SkySceneView: NSViewRepresentable {
         legNode.position = SCNVector3(0, -depth * 0.55, -length * 0.1)
         legNode.eulerAngles = SCNVector3(CGFloat.pi / 3.2, 0, 0)
         panel.addChildNode(legNode)
-        // Turn the face normal (+y) to the boresight.
-        let target = direction(azimuthDeg: azimuthDeg, elevationDeg: elevationDeg)
-        panel.simdOrientation = simd_quatf(from: SIMD3(0, 1, 0), to: simd_normalize(target))
-        panel.position = SCNVector3(0, 0.16, 0)
         let node = SCNNode()
-        node.addChildNode(panel)
+        node.addChildNode(pointed(panel, azimuthDeg: azimuthDeg, elevationDeg: elevationDeg))
+        return node
+    }
+
+    /// Turns a panel-shaped node's face normal (+y) to a direction and lifts it to the dish's height.
+    private static func pointed(_ panel: SCNNode, azimuthDeg: Double, elevationDeg: Double) -> SCNNode {
+        panel.simdOrientation = simd_quatf(from: SIMD3(0, 1, 0), to: simd_normalize(direction(azimuthDeg: azimuthDeg, elevationDeg: elevationDeg)))
+        panel.position = SCNVector3(0, 0.16, 0)
+        return panel
+    }
+
+    /// The pose the dish wants: a bright frame a little larger than the panel. White when the dish
+    /// is aligned (the frame then sits around the panel), orange when it needs adjusting.
+    static func targetOutline(azimuthDeg: Double, elevationDeg: Double, aligned: Bool) -> SCNNode {
+        let k: CGFloat = 0.5 / 0.2985
+        let width = 0.2985 * k * 1.18, length = 0.259 * k * 1.2, bar: CGFloat = 0.014
+        let color = aligned ? NSColor.white : NSColor(red: 1, green: 0.62, blue: 0.25, alpha: 1)
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        material.diffuse.contents = color
+        material.emission.contents = color
+        material.emission.intensity = 2.5
+        let frame = SCNNode()
+        for (w, l, x, z) in [(width, bar, 0.0, length / 2), (width, bar, 0.0, -length / 2),
+                             (bar, length, width / 2, 0.0), (bar, length, -width / 2, 0.0)] {
+            let box = SCNBox(width: w, height: bar, length: l, chamferRadius: bar / 2)
+            box.materials = [material]
+            let edge = SCNNode(geometry: box)
+            edge.position = SCNVector3(x, 0, z)
+            frame.addChildNode(edge)
+        }
+        let node = SCNNode()
+        node.addChildNode(pointed(frame, azimuthDeg: azimuthDeg, elevationDeg: elevationDeg))
         return node
     }
 

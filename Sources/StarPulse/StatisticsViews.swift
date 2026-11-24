@@ -107,26 +107,65 @@ struct AlignmentDetail: View {
     var reading: AlignmentReading?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(spacing: 12) {
             if let reading {
-                Text(summary(reading)).font(Theme.ui(17, .bold)).foregroundStyle(reading.isAligned ? Theme.good : Theme.warm)
-                row("Azimuth", "\(deg(reading.currentAzimuthDeg)) now, \(deg(reading.desiredAzimuthDeg)) wanted", "error \(signed(reading.azimuthErrorDeg))")
-                row("Elevation", "\(deg(reading.currentElevationDeg)) now, \(deg(reading.desiredElevationDeg)) wanted", "error \(signed(reading.elevationErrorDeg))")
-                row("Pointing error", deg(reading.boresightErrorDeg), "Angle between where the dish points and where it wants to point")
-                row("Tilt", deg(reading.tiltAngleDeg), "Plate tilt reported by the dish")
+                VStack(spacing: 4) {
+                    Text(title(reading)).font(Theme.ui(20, .bold)).foregroundStyle(Theme.ink)
+                    Text(subtitle(reading)).font(Theme.ui(12)).foregroundStyle(Theme.inkSecondary).multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                SkySceneView(mode: .alignment, map: nil,
+                             boresightAzimuthDeg: reading.currentAzimuthDeg, boresightElevationDeg: reading.currentElevationDeg,
+                             target: reading.isValid ? (reading.desiredAzimuthDeg, reading.desiredElevationDeg) : nil,
+                             aligned: reading.isAligned, rotating: false)
+                    .frame(height: 260).clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityLabel(reading.isAligned ? "Dish inside its target outline" : "Dish and the outline of where it should point")
+                Text("The outline shows where your Starlink wants to point. Drag to look around.")
+                    .font(Theme.ui(10)).foregroundStyle(Theme.inkMuted)
+                if reading.isValid, !reading.isAligned { advice(reading) }
+                VStack(spacing: 8) {
+                    row("Azimuth", "\(deg(reading.currentAzimuthDeg)) now, \(deg(reading.desiredAzimuthDeg)) wanted", "Compass direction the dish faces")
+                    row("Elevation", "\(deg(reading.currentElevationDeg)) now, \(deg(reading.desiredElevationDeg)) wanted", "Angle of the dish's aim above the horizon")
+                    row("Pointing error", deg(reading.boresightErrorDeg), "Angle between where the dish points and where it wants to point")
+                    row("Tilt", deg(reading.tiltAngleDeg), "Plate tilt reported by the dish")
+                }
                 Text("Uses the dish web app's own test: aligned when the pointing error stays under 5° against the 70° to 75° elevation band.")
-                    .font(Theme.ui(11)).foregroundStyle(Theme.inkMuted)
+                    .font(Theme.ui(10)).foregroundStyle(Theme.inkMuted).frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text("Waiting for dish status.").font(Theme.ui(12)).foregroundStyle(Theme.inkSecondary)
             }
         }
     }
 
-    private func summary(_ reading: AlignmentReading) -> String {
-        reading.isValid ? (reading.isAligned ? "Starlink is aligned" : "Starlink is misaligned") : "Alignment unavailable"
+    private func title(_ reading: AlignmentReading) -> String {
+        reading.isValid ? (reading.isAligned ? "Starlink is aligned" : "Starlink needs adjusting") : "Alignment unavailable"
     }
+
+    private func subtitle(_ reading: AlignmentReading) -> String {
+        if !reading.isValid { return "The dish has not settled on a position yet. Try again in a few minutes." }
+        return reading.isAligned ? "Your Starlink is pointed in the correct direction." : "Move it into the outline for the best signal."
+    }
+
+    /// Plain steps for a manually mounted dish; motorised kits move on their own.
+    private func advice(_ reading: AlignmentReading) -> some View {
+        let turn = reading.turnClockwiseDeg, raise = reading.raiseFaceDeg
+        return VStack(alignment: .leading, spacing: 6) {
+            if abs(turn) >= 1 {
+                Label(String(format: "Turn it %.0f° %@, seen from above.", abs(turn), turn > 0 ? "clockwise" : "counterclockwise"),
+                      systemImage: turn > 0 ? "arrow.clockwise" : "arrow.counterclockwise")
+            }
+            if abs(raise) >= 1 {
+                Label(String(format: "Tilt the face %.0f° %@.", abs(raise), raise > 0 ? "toward the sky" : "toward the horizon"),
+                      systemImage: raise > 0 ? "arrow.up" : "arrow.down")
+            }
+        }
+        .font(Theme.ui(12, .medium)).foregroundStyle(Theme.warm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline))
+    }
+
     private func deg(_ value: Double) -> String { String(format: "%.1f°", value) }
-    private func signed(_ value: Double) -> String { String(format: "%+.1f°", value) }
 
     private func row(_ label: String, _ value: String, _ help: String) -> some View {
         HStack {

@@ -15,6 +15,13 @@ public struct AlignmentReading: Sendable, Equatable {
     public var tiltAngleDeg: Double
 }
 
+extension AlignmentReading {
+    /// How far to turn the dish, clockwise seen from above (azimuth grows N→E); negative is counterclockwise.
+    public var turnClockwiseDeg: Double { -azimuthErrorDeg }
+    /// How far to raise the face toward the sky; negative lowers it toward the horizon.
+    public var raiseFaceDeg: Double { -elevationErrorDeg }
+}
+
 /// The dish web app's own alignment test, ported from Dishylink
 /// src/components/alignment/alignmentMath.ts (MIT). Not an interpretation: "aligned"
 /// is one of three conditions on great-circle separation against a 70°..band-top

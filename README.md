@@ -26,7 +26,7 @@ device pause and DNS filtering rules.**
 > Starlink is a trademark of Space Exploration Technologies Corp.
 
 <p align="center">
-  <img src="docs/images/popover.png" width="380" alt="StarPulse menu bar popover with status, obstruction alert and shortcuts">
+  <img src="docs/images/demo.gif" width="860" alt="Animation: clicking StarPulse in the menu bar opens the popover, then Open dashboard opens the dashboard window">
 </p>
 
 ![StarPulse dashboard with live tiles, throughput and latency charts, power, 3D obstruction dome and events](docs/images/dashboard.png)

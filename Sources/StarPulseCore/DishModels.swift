@@ -1,0 +1,68 @@
+import Foundation
+
+public struct DishStatus: Sendable, Equatable {
+    public var deviceId = ""
+    public var hardwareVersion = ""
+    public var softwareVersion = ""
+    public var countryCode = ""
+    public var uptimeSeconds: UInt64 = 0
+    public var latencyMs: Float = 0
+    public var dropRate: Float = 0
+    public var downlinkBps: Float = 0
+    public var uplinkBps: Float = 0
+    public var fractionObstructed: Float = 0
+    public var currentlyObstructed = false
+    /// How long the dish has been mapping the sky (obstruction stats valid_s).
+    public var obstructionObservedSeconds: Float = 0
+    public var boresightAzimuthDeg: Float = 0
+    public var boresightElevationDeg: Float = 0
+    public var ethSpeedMbps: Int32 = 0
+    public var desiredAzimuthDeg: Float = 0
+    /// 0 when the dish sent no target (proto3 drops zero values).
+    public var desiredElevationDeg: Float = 0
+    public var tiltAngleDeg: Float = 0
+    /// AttitudeEstimationState: 1 unconverged and 2 converged make the alignment reading valid.
+    public var attitudeState: Int = 0
+    /// UserMobilityClass: 0 stationary, 1 nomadic, 2 mobile.
+    public var mobilityClass: Int = 0
+    /// Names of the DishAlerts booleans that are currently true.
+    public var activeAlerts: [String] = []
+    public init() {}
+}
+
+public struct TelemetrySample: Sendable, Equatable {
+    public var timestamp: Date
+    /// nil when the dish reported no ping (an outage second), not zero latency.
+    public var latencyMs: Float?
+    public var dropRate: Float
+    public var downlinkBps: Float
+    public var uplinkBps: Float
+    public var powerW: Float
+}
+
+public struct DishEvent: Sendable, Equatable, Identifiable {
+    public enum Severity: Int, Sendable { case unknown = 0, warning, caution, advisory }
+    public var id: String { "\(startTimestampNs)-\(reason)" }
+    public var severity: Severity
+    public var reason: Int
+    public var startTimestampNs: Int64
+    public var durationNs: UInt64
+    public var start: Date { Date(timeIntervalSince1970: Double(startTimestampNs) / 1e9) }
+    public var duration: TimeInterval { Double(durationNs) / 1e9 }
+    public var title: String { DishEvent.titles[reason] ?? "Event \(reason)" }
+
+    // EventReason values from the dish's reflection dump (schema/dish.protoset).
+    static let titles: [Int: String] = [
+        1: "Unknown outage", 2: "Booting", 3: "Stowed", 4: "Thermal shutdown",
+        5: "No schedule", 6: "No satellites", 7: "Obstructed", 8: "No downlink",
+        9: "No pings", 10: "Sleeping", 11: "Moving while not allowed", 12: "High downlink packet loss",
+        19: "Sky search", 22: "Rain, low SNR", 23: "Ethernet: no link", 24: "Ethernet: slow link",
+        25: "Ethernet: 100 Mbps link", 50: "RF inhibited", 52: "User reported issue",
+    ]
+}
+
+public struct DishHistory: Sendable, Equatable {
+    public var samples: [TelemetrySample]
+    public var events: [DishEvent]
+    public var newestCounter: UInt64
+}

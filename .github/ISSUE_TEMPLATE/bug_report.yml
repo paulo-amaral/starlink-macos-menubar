@@ -1,0 +1,49 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for the report. Please remove personal data (device names, Wi-Fi name, IDs, location) from text and screenshots.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, what you saw.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Open the dashboard\n2. ..."
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: StarPulse version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "15.2"
+    validations:
+      required: true
+  - type: dropdown
+    id: kit
+    attributes:
+      label: Starlink kit
+      options: [Mini, Standard, Standard Actuated, Performance, Other / not sure]
+  - type: input
+    id: firmware
+    attributes:
+      label: Dish and router firmware (from Settings)
+  - type: textarea
+    id: logs
+    attributes:
+      label: Screenshots or logs
+      description: Optional. Redact personal data first.

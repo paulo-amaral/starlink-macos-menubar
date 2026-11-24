@@ -74,3 +74,7 @@ import Testing
     #expect(try DnsWrite.clear(targetId: "Router-1") == expected.bytes)
     #expect(throws: PauseError.invalidTarget) { try DnsWrite.clear(targetId: "ut123") }
 }
+
+@Test func contentFilterHasShortMenuBarNames() {
+    #expect(ContentFilter.allCases.map(\.shortTitle) == ["Off", "Malware", "Adult + malware"])
+}

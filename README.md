@@ -43,7 +43,7 @@ device pause and DNS filtering rules.**
 
 | Area | What you get |
 |---|---|
-| Menu bar | Choose the readouts: status dot, latency, ping success, download/upload, power |
+| Menu bar | Choose the readouts: status, latency, content filter, ping success, download, power |
 | Popover | Status, alerts, live throughput, latency and a shortcut to every panel |
 | Dashboard | Tiles, throughput and latency charts (15 min, 1 h, 6 h), power, events and outages |
 | Statistics | Starlink-style cards: download, upload, latency, ping success, outages, obstructions |

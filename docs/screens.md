@@ -6,8 +6,8 @@ telemetry is real.
 
 ## Menu bar
 
-The status item shows the readouts you pick in Settings → App: connection status, latency, ping
-success, throughput and power draw. Click it to open the popover.
+The status item shows the readouts you pick in Settings → App: connection status, latency, content
+filter, ping success, throughput and power draw. Click it to open the popover.
 
 ## Menu bar popover
 

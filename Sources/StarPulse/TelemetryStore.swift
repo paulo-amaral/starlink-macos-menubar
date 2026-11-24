@@ -3,7 +3,7 @@ import Observation
 import StarPulseCore
 
 enum Readout: String, CaseIterable, Identifiable {
-    case status, latency, pingSuccess, throughput, power
+    case status, latency, pingSuccess, throughput, power, contentFilter
     var id: String { rawValue }
     var label: String {
         switch self {
@@ -12,6 +12,7 @@ enum Readout: String, CaseIterable, Identifiable {
         case .pingSuccess: "Ping success"
         case .throughput: "Throughput"
         case .power: "Power draw"
+        case .contentFilter: "Content filter"
         }
     }
 }
@@ -96,6 +97,9 @@ final class TelemetryStore {
         case .status:
             if case .offline = connection { return "Offline" }
             return isOutage ? "Outage" : "Online"
+        case .contentFilter:
+            guard let servers = routerConfig?.nameservers else { return "Filter --" }
+            return ContentFilter.current(servers).map { "Filter \($0.shortTitle)" } ?? "Custom DNS"
         case .latency: return status.latencyMs > 0 ? "\(Int(status.latencyMs.rounded())) ms" : "-- ms"
         case .pingSuccess: return pingSuccessPercent.map { "\(Int($0.rounded()))%" } ?? "--"
         case .throughput: return "↓\(Format.menuBarRate(status.downlinkBps, unit: SettingsKey.savedRateUnit))"

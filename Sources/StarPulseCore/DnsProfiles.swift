@@ -109,6 +109,15 @@ public enum ContentFilter: String, CaseIterable, Sendable {
         }
     }
 
+    /// Compact name for the menu bar.
+    public var shortTitle: String {
+        switch self {
+        case .none: "Off"
+        case .malware: "Malware"
+        case .malwareAndAdult: "Adult + malware"
+        }
+    }
+
     /// The Starlink app's own wording.
     public var detail: String? {
         switch self {

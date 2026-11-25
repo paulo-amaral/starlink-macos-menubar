@@ -4,6 +4,21 @@ All notable changes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.6] - 2026-11-25
+
+### Added
+- Dish update notification: when the dish has installed an update and waits to restart, a
+  notification and an "Update ready" notice say when (for example "tomorrow around 04:05"), from
+  the dish's own schedule, or its update window when it gives no time. Once per update; switch in
+  Settings › App › Notifications.
+- Install update now: Settings › Starlink › Maintenance offers "Restart now…" while an update
+  waits, so the dish finishes it at once instead of in its update window.
+- Service notices in the popover: service restricted (no active plan, account disabled, data
+  limit reached, location rules) and speed limits, read from the dish.
+
+### Changed
+- A pending update no longer shows as a red alert in the popover.
+
 ## [0.1.5] - 2026-11-25
 
 ### Added

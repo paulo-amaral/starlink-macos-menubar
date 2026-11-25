@@ -4,13 +4,14 @@ import UserNotifications
 
 /// The conditions StarPulse can notify about, each with its own switch in Settings.
 enum LinkAlert: CaseIterable {
-    case outage, packetLoss, latency
+    case outage, packetLoss, latency, update
 
     var settingsKey: String {
         switch self {
         case .outage: SettingsKey.notifyOutages
         case .packetLoss: SettingsKey.notifyPacketLoss
         case .latency: SettingsKey.notifyLatency
+        case .update: SettingsKey.notifyUpdates
         }
     }
 
@@ -52,10 +53,34 @@ final class LinkNotifier: NSObject, UNUserNotificationCenterDelegate, Sendable {
         case (.latency, .started):
             content.title = "Starlink latency is high"
             content.body = String(format: "Median latency was %.0f ms over the last minute.", quality.latencyMs ?? 0)
-        case (.packetLoss, .ended), (.latency, .ended):
+        case (.packetLoss, .ended), (.latency, .ended), (.update, _):
             return
         }
-        // One identifier per alert, so "back online" replaces "down" in Notification Center.
+        send(alert, content)
+    }
+
+    /// A dish update waiting for its restart; the caller makes sure this runs once per update.
+    func postUpdate(rebootAt: Date?, window: UpdateWindow?) {
+        guard LinkAlert.update.isEnabled else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Starlink will restart for an update"
+        content.body = "\(Self.rebootWhen(rebootAt, window: window)) The internet drops for a few minutes while it restarts."
+        send(.update, content)
+    }
+
+    /// "It restarts tomorrow around 4:05 AM." or, without a time from the dish, its update window.
+    static func rebootWhen(_ time: Date?, window: UpdateWindow?) -> String {
+        guard let time, time > Date() else {
+            return window.map { "It restarts in its update window, \($0.label.lowercased())." } ?? "It restarts in its next update window."
+        }
+        let clock = time.formatted(date: .omitted, time: .shortened)
+        let calendar = Calendar.current
+        let day = calendar.isDateInToday(time) ? "today" : calendar.isDateInTomorrow(time) ? "tomorrow" : time.formatted(.dateTime.weekday(.wide))
+        return "It restarts \(day) around \(clock)."
+    }
+
+    // One identifier per alert, so "back online" replaces "down" in Notification Center.
+    private func send(_ alert: LinkAlert, _ content: UNMutableNotificationContent) {
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "starpulse-\(alert)", content: content, trigger: nil))
     }
 

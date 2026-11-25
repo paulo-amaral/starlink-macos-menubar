@@ -61,10 +61,29 @@ public enum DishDecoder {
             case (1017, .varint): status.mobilityClass = try reader.readInt()
             case (1027, .lengthDelimited): try decodeAlignment(try reader.readLengthDelimited(), into: &status)
             case (1016, .varint): status.ethSpeedMbps = Int32(truncatingIfNeeded: try reader.readVarint())
+            case (1021, .varint): status.softwareUpdateState = try reader.readInt()
+            case (1026, .lengthDelimited): status.updateRebootAt = try decodeRebootTime(try reader.readLengthDelimited())
+            case (1030, .varint): status.updateRebootReady = try reader.readVarint() != 0
+            case (1024, .varint): status.disablementCode = try reader.readInt()
+            case (1044, .varint): status.downloadLimitReason = try reader.readInt()
+            case (1045, .varint): status.uploadLimitReason = try reader.readInt()
             default: try reader.skip(wire)
             }
         }
         return status
+    }
+
+    /// SoftwareUpdateStats field 4, reboot_scheduled_utc_time. Seconds on firmware 2026.11.12; the unit
+    /// is not documented, so milliseconds and nanoseconds are recognised by size.
+    private static func decodeRebootTime(_ bytes: [UInt8]) throws -> Date? {
+        var reader = ProtoReader(bytes)
+        var raw: UInt64?
+        while let (field, wire) = try reader.nextField() {
+            if field == 4, wire == .varint { raw = try reader.readVarint() } else { try reader.skip(wire) }
+        }
+        guard let raw, raw > 0 else { return nil }
+        let value = Double(raw)
+        return Date(timeIntervalSince1970: value > 1e17 ? value / 1e9 : value > 1e11 ? value / 1e3 : value)
     }
 
     private static func decodeDeviceInfo(_ bytes: [UInt8], into status: inout DishStatus) throws {

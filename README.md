@@ -44,8 +44,8 @@ device pause and DNS filtering rules.**
 | Area | What you get |
 |---|---|
 | Menu bar | Choose the readouts: status, latency, content filter, ping success, download, power |
-| Popover | Status, alerts, live throughput, latency and a shortcut to every panel |
-| Notifications | Starlink down for 30 seconds (and back), high packet loss, high latency; each one switchable, with adjustable limits |
+| Popover | Status, alerts, service limits, pending updates, live throughput, latency and a shortcut to every panel |
+| Notifications | Starlink down for 30 seconds (and back), high packet loss, high latency, dish update restart time; each one switchable, with adjustable limits |
 | Dashboard | Tiles, throughput and latency charts (15 min, 1 h, 6 h), power, events and outages |
 | Statistics | Starlink-style cards: download, upload, latency, ping success, outages, obstructions |
 | Latency | Starlink PoP latency against the router, average and current, distribution |
@@ -178,7 +178,9 @@ Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) an
 ## Acknowledgments
 
 StarPulse is a Swift port of the ideas and protocol work in
-[Dishylink](https://github.com/DaveyHert/dishylink) (MIT) by daveyhert. Fonts: D-DIN (Datto, OFL)
+[Dishylink](https://github.com/DaveyHert/dishylink) (MIT) by daveyhert. The meanings of the dish's
+update, service and speed-limit fields follow the notes in
+[StarlinkBar](https://github.com/bereto-dev/starlink-monitor) (MIT). Fonts: D-DIN (Datto, OFL)
 and IBM Plex Mono (IBM, OFL). Orbital data: [CelesTrak](https://celestrak.org). See
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 

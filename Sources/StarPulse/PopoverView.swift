@@ -159,7 +159,11 @@ struct PopoverView: View {
         }
         guard let status = store.status, case .live = store.connection else { return nil }
         if store.isOutage { return Notice(title: "No connection", text: "The dish is not reaching the network.", action: "View events…", page: .detail(.events), critical: true) }
-        if !status.activeAlerts.isEmpty { return Notice(title: "Alert", text: "The dish reports: \(status.alertTitles.joined(separator: ", ")).", action: "View statistics…", page: .statistics, critical: true) }
+        if let service = ServiceNotice.from(status) { return Notice(title: service.title, text: service.text, action: nil, page: nil, critical: service.critical) }
+        if !status.problemAlertTitles.isEmpty { return Notice(title: "Alert", text: "The dish reports: \(status.problemAlertTitles.joined(separator: ", ")).", action: "View statistics…", page: .statistics, critical: true) }
+        if status.isUpdateWaitingForReboot {
+            return Notice(title: "Update ready", text: "A Starlink update is installed. \(LinkNotifier.rebootWhen(status.updateRebootAt, window: store.updateWindow)) To install it now, restart the dish in Settings › Starlink.", action: nil, page: nil, critical: false)
+        }
         if status.fractionObstructed >= 0.01 { return Notice(title: "Obstructed", text: "Starlink is partially obstructed.", action: "View obstructions…", page: .obstructions, critical: false) }
         return nil
     }

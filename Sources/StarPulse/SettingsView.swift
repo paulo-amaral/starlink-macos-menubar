@@ -64,6 +64,15 @@ struct StarlinkSettingsPane: View {
                 Section { Text("Reading the dish settings…").foregroundStyle(Theme.inkSecondary) }
             }
             Section("Maintenance") {
+                if let status = store.status, status.isUpdateWaitingForReboot {
+                    MaintenanceRow(title: "Install update now",
+                                   detail: "An update is installed and waits for a restart. \(LinkNotifier.rebootWhen(status.updateRebootAt, window: store.updateWindow))",
+                                   button: "Restart now…",
+                                   confirm: "The dish restarts now to finish the update instead of waiting. Internet drops for about 2 to 3 minutes.",
+                                   help: "Restart the dish now to finish installing the waiting update") {
+                        sent(try await store.performMaintenance(.reboot, account: account), "The dish is restarting to finish the update.")
+                    }
+                }
                 MaintenanceRow(title: "Reset obstruction map", detail: "Wipes the learned sky survey. Do this after physically moving the dish; it takes hours to relearn.", button: "Reset…",
                                confirm: "The dish forgets what it has learned about your sky and maps it again over the next hours.",
                                help: "Clear the dish's learned obstruction map") {
@@ -205,6 +214,7 @@ struct AppSettingsPane: View {
     @AppStorage(SettingsKey.notifyOutages) private var notifyOutages = LinkAlert.outage.onByDefault
     @AppStorage(SettingsKey.notifyPacketLoss) private var notifyPacketLoss = LinkAlert.packetLoss.onByDefault
     @AppStorage(SettingsKey.notifyLatency) private var notifyLatency = LinkAlert.latency.onByDefault
+    @AppStorage(SettingsKey.notifyUpdates) private var notifyUpdates = LinkAlert.update.onByDefault
     @AppStorage(SettingsKey.lossThreshold) private var lossThreshold = LinkCheck.lossPercent
     @AppStorage(SettingsKey.latencyThreshold) private var latencyThreshold = LinkCheck.latencyMs
 
@@ -237,6 +247,8 @@ struct AppSettingsPane: View {
                                   help: "Median latency over the last minute that counts as high").frame(width: 240)
                 }
                 .disabled(!notifyLatency)
+                Toggle("Dish update restart", isOn: $notifyUpdates)
+                    .help("Tell you when the dish has an update and when it will restart for it")
             }
             Section("Throughput") {
                 LabeledContent("Unit") {
@@ -256,7 +268,7 @@ struct AppSettingsPane: View {
         }
         .formStyle(.grouped)
         .onChange(of: appearance) { _, new in (AppearanceChoice(rawValue: new) ?? .dark).apply() }
-        .onChange(of: [notifyOutages, notifyPacketLoss, notifyLatency]) { _, on in if on.contains(true) { LinkNotifier.shared.requestPermission() } }
+        .onChange(of: [notifyOutages, notifyPacketLoss, notifyLatency, notifyUpdates]) { _, on in if on.contains(true) { LinkNotifier.shared.requestPermission() } }
     }
 }
 

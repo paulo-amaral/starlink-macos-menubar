@@ -27,10 +27,30 @@ public struct DishStatus: Sendable, Equatable {
     public var mobilityClass: Int = 0
     /// Names of the DishAlerts booleans that are currently true.
     public var activeAlerts: [String] = []
+    /// SoftwareUpdateState (1021): 1 idle, 2 to 5 downloading or installing, 6 reboot required.
+    public var softwareUpdateState = 0
+    /// swupdate_reboot_ready (1030).
+    public var updateRebootReady = false
+    /// When the dish plans to restart for the update (1026 field 4), if it said.
+    public var updateRebootAt: Date?
+    /// UtDisablementCode (1024): 1 is OKAY; higher codes restrict service.
+    public var disablementCode = 0
+    /// RateLimitReason (1044 download, 1045 upload): 1 is NO_LIMIT.
+    public var downloadLimitReason = 0
+    public var uploadLimitReason = 0
     public init() {}
 
+    public var isUpdateWaitingForReboot: Bool { updateRebootReady || softwareUpdateState == 6 }
+
     /// The active alerts in plain words; a name without a known wording is shown as is.
-    public var alertTitles: [String] { activeAlerts.map { Self.alertWording[$0] ?? $0 } }
+    public var alertTitles: [String] { activeAlerts.map(Self.alertTitle) }
+
+    /// Active alerts that need attention: a pending update is news, not a problem, once it is shown on its own.
+    public var problemAlertTitles: [String] {
+        activeAlerts.filter { !(isUpdateWaitingForReboot && $0 == "installPending") }.map(Self.alertTitle)
+    }
+
+    public static func alertTitle(_ name: String) -> String { alertWording[name] ?? name }
 
     static let alertWording: [String: String] = [
         "motorsStuck": "Dish motors are stuck",

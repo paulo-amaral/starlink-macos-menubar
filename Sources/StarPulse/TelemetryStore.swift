@@ -41,6 +41,9 @@ enum SettingsKey {
     static let notifyOutages = "notifyOutages"
     static let notifyPacketLoss = "notifyPacketLoss"
     static let notifyLatency = "notifyLatency"
+    static let notifyUpdates = "notifyUpdates"
+    /// The last pending update already announced, so a relaunch does not announce it again.
+    static let announcedUpdate = "announcedUpdate"
     static let lossThreshold = "lossThresholdPercent"
     static let latencyThreshold = "latencyThresholdMs"
 
@@ -223,6 +226,18 @@ final class TelemetryStore {
         if let event = outageWatch.update(isActive: isOutage, at: now) { LinkNotifier.shared.post(.outage, event, quality: recent) }
         if let event = lossWatch.update(isActive: LinkCheck.isLossy(recent, atLeast: SettingsKey.savedLossThreshold), at: now) { LinkNotifier.shared.post(.packetLoss, event, quality: recent) }
         if let event = latencyWatch.update(isActive: LinkCheck.isSlow(recent, atLeast: SettingsKey.savedLatencyThreshold), at: now) { LinkNotifier.shared.post(.latency, event, quality: recent) }
+        announceUpdate()
+    }
+
+    var updateWindow: UpdateWindow? { dishConfig.map { UpdateWindow.containing(hour: $0.updateRebootHour) } }
+
+    /// Once per pending update: the running version plus the planned restart identify it.
+    private func announceUpdate() {
+        guard let status, status.isUpdateWaitingForReboot else { return }
+        let key = "\(status.softwareVersion)@\(Int(status.updateRebootAt?.timeIntervalSince1970 ?? 0))"
+        guard UserDefaults.standard.string(forKey: SettingsKey.announcedUpdate) != key else { return }
+        UserDefaults.standard.set(key, forKey: SettingsKey.announcedUpdate)
+        LinkNotifier.shared.postUpdate(rebootAt: status.updateRebootAt, window: updateWindow)
     }
 
     private func pollClients() async {

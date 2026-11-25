@@ -21,6 +21,26 @@ private func response(field: Int, _ build: (inout ProtoWriter) -> Void) -> [UInt
     return writer.bytes
 }
 
+@Test func pendingUpdateDecodes() throws {
+    // Shape seen on a live dish (firmware 2026.11.12): state 6, stats {1: 6, 2: 1.0, 3: 1, 4: seconds}.
+    let bytes = response(field: DishDecoder.Response.dishGetStatus) { w in
+        w.writeVarint(1021, 6)
+        w.writeMessage(1026) { $0.writeVarint(1, 6); $0.writeFloat(2, 1); $0.writeVarint(3, 1); $0.writeVarint(4, 1_795_633_506) }
+    }
+    let status = try DishDecoder.decodeStatus(response: bytes)
+    #expect(status.isUpdateWaitingForReboot)
+    #expect(status.updateRebootAt == Date(timeIntervalSince1970: 1_795_633_506))
+    var withAlert = status
+    withAlert.activeAlerts = ["installPending", "isHeating"]
+    #expect(withAlert.problemAlertTitles == ["Heating to melt snow"])
+
+    let milliseconds = response(field: DishDecoder.Response.dishGetStatus) { w in w.writeMessage(1026) { $0.writeVarint(4, 1_795_633_506_000) } }
+    #expect(try DishDecoder.decodeStatus(response: milliseconds).updateRebootAt == Date(timeIntervalSince1970: 1_795_633_506))
+
+    let idle = response(field: DishDecoder.Response.dishGetStatus) { w in w.writeVarint(1021, 1) }
+    #expect(try !DishDecoder.decodeStatus(response: idle).isUpdateWaitingForReboot)
+}
+
 @Test func requestSelectsMethodByFieldNumber() {
     #expect(DishDecoder.requestBytes(getHistory: false) == [0xE2, 0x3E, 0x00]) // field 1004, len 0
     #expect(DishDecoder.requestBytes(getHistory: true) == [0xFA, 0x3E, 0x00])  // field 1007, len 0

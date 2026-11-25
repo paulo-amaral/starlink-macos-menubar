@@ -47,7 +47,8 @@ public enum DeviceDiagnostics {
             var network = ProtoReader(try reader.readLengthDelimited())
             while let (f, w) = try network.nextField() {
                 guard w == .varint else { try network.skip(w); continue }
-                let value = Int(truncatingIfNeeded: try network.readVarint())
+                // Capped so a malformed reply cannot overflow the sums and trap.
+                let value = Int(min(try network.readVarint(), 10_000))
                 switch f {
                 case 10: counts.ethernet += value
                 case 11: counts.band2GHz += value

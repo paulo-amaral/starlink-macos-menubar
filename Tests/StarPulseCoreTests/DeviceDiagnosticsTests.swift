@@ -32,4 +32,12 @@ import Testing
         #expect(counts == .init(ethernet: 1, band2GHz: 4, band5GHz: 5))
         #expect(try DeviceDiagnostics.clientCounts(response: []) == nil)
     }
+
+    @Test func hugeCountsDoNotTrap() throws {
+        var writer = ProtoWriter()
+        writer.writeMessage(6000) { body in
+            for _ in 0..<3 { body.writeMessage(4) { $0.writeVarint(11, .max) } }
+        }
+        #expect(try DeviceDiagnostics.clientCounts(response: writer.bytes)?.band2GHz == 30_000)
+    }
 }

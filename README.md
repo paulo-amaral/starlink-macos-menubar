@@ -45,6 +45,7 @@ device pause and DNS filtering rules.**
 |---|---|
 | Menu bar | Choose the readouts: status, latency, content filter, ping success, download, power |
 | Popover | Status, alerts, live throughput, latency and a shortcut to every panel |
+| Notifications | macOS notification when Starlink is down for 30 seconds, and again when it is back |
 | Dashboard | Tiles, throughput and latency charts (15 min, 1 h, 6 h), power, events and outages |
 | Statistics | Starlink-style cards: download, upload, latency, ping success, outages, obstructions |
 | Latency | Starlink PoP latency against the router, average and current, distribution |
@@ -94,6 +95,7 @@ open build/StarPulse.app
 
 ## Requirements
 
+- macOS 14 or later, on an Apple silicon or Intel Mac.
 - A Starlink kit on the same network as the Mac. The dish answers at `192.168.100.1`.
 - Router features (devices, nodes, pause, rules) need a **Starlink router**. The router address is detected from the default gateway; you can change it in Settings.
 - Device pause, network DNS rules and account details need you to **sign in with your Starlink
@@ -154,8 +156,10 @@ how to report a vulnerability: **[SECURITY.md](SECURITY.md)**.
 ## FAQ
 
 **Does it work without a Starlink router (third-party router in bypass mode)?**
-The dish data works if the Mac can reach `192.168.100.1`. Devices, nodes, pause and rules need the
-Starlink router.
+The dish data works if the Mac can reach `192.168.100.1`. In bypass mode your router needs a static
+route to `192.168.100.1/32` out of the Starlink WAN port; with dual-WAN, keep that route on the
+Starlink WAN. When the dish does not answer, StarPulse shows the likely cause. Devices, nodes,
+pause and rules need the Starlink router.
 
 **Does it need the Starlink app or an account?**
 No for monitoring. Yes (sign-in) for pause, network DNS rules and account details.

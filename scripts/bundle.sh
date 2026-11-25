@@ -3,8 +3,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 config=${1:-release}
-swift build -c "$config"
-bin=$(swift build -c "$config" --show-bin-path)
+# Universal binary: Apple silicon and Intel Macs.
+arch=(--arch arm64 --arch x86_64)
+swift build -c "$config" $arch
+bin=$(swift build -c "$config" $arch --show-bin-path)
 app=build/StarPulse.app
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
@@ -12,8 +14,10 @@ cp "$bin/StarPulse" "$app/Contents/MacOS/StarPulse"
 cp Sources/StarPulse/Info.plist "$app/Contents/Info.plist"
 # Resources go straight into Contents/Resources (found through Bundle.main); SwiftPM's own
 # .bundle folders would have to sit in the app root, which code signing rejects.
-cp -R "$bin/StarPulse_StarPulse.bundle/Fonts" "$app/Contents/Resources/"
-cp "$bin/StarPulse_StarPulseCore.bundle/oui.json" "$app/Contents/Resources/"
+# Multi-arch builds (xcbuild) nest the files in Contents/Resources; single-arch builds do not.
+resources() { [[ -d "$bin/$1/Contents/Resources" ]] && echo "$bin/$1/Contents/Resources" || echo "$bin/$1" }
+cp -R "$(resources StarPulse_StarPulse.bundle)/Fonts" "$app/Contents/Resources/"
+cp "$(resources StarPulse_StarPulseCore.bundle)/oui.json" "$app/Contents/Resources/"
 # Icon drawn by scripts/make-icon.swift; regenerate with: swift scripts/make-icon.swift /tmp/AppIcon.iconset && iconutil -c icns /tmp/AppIcon.iconset -o Resources/AppIcon.icns
 cp Resources/AppIcon.icns "$app/Contents/Resources/AppIcon.icns"
 # A stable local identity keeps the app's Keychain access ("Always Allow") valid across builds.

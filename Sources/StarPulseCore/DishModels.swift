@@ -28,6 +28,30 @@ public struct DishStatus: Sendable, Equatable {
     /// Names of the DishAlerts booleans that are currently true.
     public var activeAlerts: [String] = []
     public init() {}
+
+    /// The active alerts in plain words; a name without a known wording is shown as is.
+    public var alertTitles: [String] { activeAlerts.map { Self.alertWording[$0] ?? $0 } }
+
+    static let alertWording: [String: String] = [
+        "motorsStuck": "Dish motors are stuck",
+        "thermalShutdown": "Dish shut down to cool off",
+        "thermalThrottle": "Dish is too hot; speed reduced",
+        "unexpectedLocation": "Dish is outside its expected location",
+        "mastNotNearVertical": "Mast is not vertical",
+        "slowEthernetSpeeds": "Slow Ethernet link",
+        "roaming": "Roaming",
+        "installPending": "Software update waiting to install",
+        "isHeating": "Heating to melt snow",
+        "powerSupplyThermalThrottle": "Power supply is too hot; speed reduced",
+        "isPowerSaveIdle": "Power save mode is on",
+        "lowMotorCurrent": "Low motor current",
+        "lowerSignalThanPredicted": "Weaker signal than expected",
+        "slowEthernetSpeeds100": "Ethernet link limited to 100 Mbps",
+        "obstructionMapReset": "Obstruction map was reset",
+        "dishWaterDetected": "Water detected in the dish",
+        "routerWaterDetected": "Water detected in the router",
+        "noEthernetLink": "No Ethernet link",
+    ]
 }
 
 public struct TelemetrySample: Sendable, Equatable {

@@ -70,6 +70,7 @@ private func response(field: Int, _ build: (inout ProtoWriter) -> Void) -> [UInt
     #expect(abs(status.downlinkBps - 898134.7) < 1)
     #expect(status.ethSpeedMbps == 1000)
     #expect(status.activeAlerts == ["isHeating", "noEthernetLink"])
+    #expect(status.alertTitles == ["Heating to melt snow", "No Ethernet link"])
     #expect(status.fractionObstructed < 0.001)
 }
 

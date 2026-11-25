@@ -202,6 +202,7 @@ struct AppSettingsPane: View {
     @AppStorage(SettingsKey.appearance) private var appearance = AppearanceChoice.dark.rawValue
     @AppStorage(SettingsKey.rateUnit) private var rateUnit = RateUnit.automatic.rawValue
     @AppStorage(SettingsKey.throughputAxisMax) private var axisMax = 0.0
+    @AppStorage(SettingsKey.notifyOutages) private var notifyOutages = true
 
     var body: some View {
         Form {
@@ -210,6 +211,8 @@ struct AppSettingsPane: View {
                 OpenAtLoginToggle()
                 Toggle("Open dashboard at launch", isOn: $openAtLaunch)
                     .help("Show the dashboard window when StarPulse starts")
+                Toggle("Notify when Starlink is down", isOn: $notifyOutages)
+                    .help("Alert after 30 seconds without a connection, and again when it is back")
                 LabeledContent("Theme") {
                     AppSegmented(selection: $appearance, options: AppearanceChoice.allCases.map { ($0.rawValue, $0.label) },
                                   help: "Dark is the default; System follows macOS").frame(width: 240)
@@ -233,6 +236,7 @@ struct AppSettingsPane: View {
         }
         .formStyle(.grouped)
         .onChange(of: appearance) { _, new in (AppearanceChoice(rawValue: new) ?? .dark).apply() }
+        .onChange(of: notifyOutages) { _, on in if on { OutageNotifier.shared.requestPermission() } }
     }
 }
 

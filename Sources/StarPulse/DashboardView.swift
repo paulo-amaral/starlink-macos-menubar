@@ -14,7 +14,21 @@ struct DashboardView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     TopBar(store: store)
                     if case .offline(let message) = store.connection {
-                        Card { Text("Cannot reach the dish: \(message). Connect to the Starlink network and check the dish address in Settings.").font(Theme.ui(12)).foregroundStyle(Theme.inkSecondary) }
+                        Card {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Cannot reach the dish: \(store.dishDiagnosis?.title.lowercased() ?? "no answer")").font(Theme.ui(13, .semibold)).foregroundStyle(Theme.critical)
+                                if let advice = store.dishDiagnosis?.advice { Text(advice).font(Theme.ui(12)).foregroundStyle(Theme.ink) }
+                                Text(message).font(Theme.ui(11)).foregroundStyle(Theme.inkSecondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    if case .live = store.connection, store.isOutage {
+                        Card {
+                            Label("Starlink is down: the dish is not reaching the network. Recent outages are listed under Events.",
+                                  systemImage: "exclamationmark.triangle.fill")
+                                .font(Theme.ui(13, .semibold)).foregroundStyle(Theme.critical)
+                        }
                     }
                     tiles
                     HStack(alignment: .top, spacing: 12) {

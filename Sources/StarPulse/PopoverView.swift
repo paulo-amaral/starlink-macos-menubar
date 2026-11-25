@@ -149,14 +149,17 @@ struct PopoverView: View {
         }
     }
 
-    private struct Notice { var title: String; var text: String; var action: String; var page: Page; var critical: Bool }
+    private struct Notice { var title: String; var text: String; var action: String?; var page: Page?; var critical: Bool }
 
     /// One banner at most, most severe first. The 1% floor for "partially obstructed"
     /// is this app's choice, not a Starlink rule.
     private var notice: Notice? {
+        if case .offline = store.connection, let diagnosis = store.dishDiagnosis {
+            return Notice(title: "Cannot reach the dish: \(diagnosis.title.lowercased())", text: diagnosis.advice, action: nil, page: nil, critical: true)
+        }
         guard let status = store.status, case .live = store.connection else { return nil }
         if store.isOutage { return Notice(title: "No connection", text: "The dish is not reaching the network.", action: "View events…", page: .detail(.events), critical: true) }
-        if !status.activeAlerts.isEmpty { return Notice(title: "Alert", text: "The dish reports \(status.activeAlerts.joined(separator: ", ")).", action: "View statistics…", page: .statistics, critical: true) }
+        if !status.activeAlerts.isEmpty { return Notice(title: "Alert", text: "The dish reports: \(status.alertTitles.joined(separator: ", ")).", action: "View statistics…", page: .statistics, critical: true) }
         if status.fractionObstructed >= 0.01 { return Notice(title: "Obstructed", text: "Starlink is partially obstructed.", action: "View obstructions…", page: .obstructions, critical: false) }
         return nil
     }
@@ -168,13 +171,15 @@ struct PopoverView: View {
                 Image(systemName: "info.circle").foregroundStyle(color).font(.title3)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(notice.title).font(Theme.ui(15, .bold)).foregroundStyle(Theme.ink)
-                    Text(notice.text).font(Theme.ui(13)).foregroundStyle(Theme.inkSecondary)
+                    Text(notice.text).font(Theme.ui(13)).foregroundStyle(Theme.inkSecondary).fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Button { path.append(notice.page) } label: {
-                Text(notice.action).font(Theme.ui(13, .semibold)).frame(maxWidth: .infinity).padding(.vertical, 8)
+            if let action = notice.action, let page = notice.page {
+                Button { path.append(page) } label: {
+                    Text(action).font(Theme.ui(13, .semibold)).frame(maxWidth: .infinity).padding(.vertical, 8)
+                }
+                .buttonStyle(.plain).background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 8))
             }
-            .buttonStyle(.plain).background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 8))
         }
         .padding(12)
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(color))

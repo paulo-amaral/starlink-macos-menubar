@@ -60,7 +60,7 @@ struct TopBar: View {
         }
     }
 
-    private var alertCount: Int { store.status?.activeAlerts.count ?? 0 }
+    private var alertCount: Int { (store.status?.activeAlerts.count ?? 0) + (store.isOutage ? 1 : 0) }
     private var statusText: String {
         switch store.connection { case .connecting: "connecting"; case .offline: "offline"; case .live: store.isPaused ? "paused" : (store.isOutage ? "no connection" : "online") }
     }
@@ -73,9 +73,10 @@ struct TopBar: View {
     private var alertsList: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Alerts").font(Theme.ui(13, .semibold))
-            if let alerts = store.status?.activeAlerts, !alerts.isEmpty {
+            if store.isOutage { Text("No connection").font(Theme.ui(12, .semibold)).foregroundStyle(Theme.critical) }
+            if let alerts = store.status?.alertTitles, !alerts.isEmpty {
                 ForEach(alerts, id: \.self) { Text($0).font(Theme.ui(12)) }
-            } else { Text("Nothing is wrong right now.").foregroundStyle(Theme.inkSecondary) }
+            } else if !store.isOutage { Text("Nothing is wrong right now.").foregroundStyle(Theme.inkSecondary) }
         }
         .padding(14).frame(minWidth: 220, alignment: .leading)
     }

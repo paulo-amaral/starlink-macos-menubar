@@ -38,6 +38,7 @@ enum SettingsKey {
     static let openAtLaunch = "openDashboardAtLaunch"
     static let rateUnit = "rateUnit"
     static let throughputAxisMax = "throughputAxisMaxMbps"
+    static let notifyOutages = "notifyOutages"
 
     static var savedRateUnit: RateUnit { RateUnit(rawValue: UserDefaults.standard.string(forKey: rateUnit) ?? "") ?? .automatic }
 }
@@ -60,6 +61,7 @@ final class TelemetryStore {
     /// Daily peak and average throughput, kept for 62 days (see ThroughputLedger).
     var throughputLedger = ThroughputLedgerStore.standard.load()
     private var ledgerSavedAt = Date.distantPast
+    private var outageWatch = OutageWatch()
     var dishConfig: DishConfig?
     var routerConfig: RouterConfig?
     var routerStatus: RouterStatus?
@@ -72,6 +74,8 @@ final class TelemetryStore {
     /// Stops polling the dish and router so the screen holds still; resuming catches up at once.
     var isPaused = false
     var connection: Connection = .connecting
+    /// Likely reason the dish does not answer; set only while it does not.
+    var dishDiagnosis: DishDiagnosis?
     private var task: Task<Void, Never>?
     private var routerTask: Task<Void, Never>?
 
@@ -87,7 +91,12 @@ final class TelemetryStore {
     var stats: TelemetryStats { TelemetryStats.compute(samples: samples, events: events, now: Date()) }
     var alignment: AlignmentReading? { status.map(AlignmentMath.compute) }
 
-    func menuBarText(readouts: [Readout]) -> String { readouts.map { menuBarText($0) }.joined(separator: "  ") }
+    /// A drop replaces every readout, so the menu bar never shows numbers from before it.
+    func menuBarText(readouts: [Readout]) -> String {
+        if case .offline = connection { return "Offline" }
+        if status != nil, isOutage { return "Outage" }
+        return readouts.map { menuBarText($0) }.joined(separator: "  ")
+    }
 
     var isOutage: Bool { (status?.dropRate ?? 0) >= 1 }
 
@@ -161,9 +170,13 @@ final class TelemetryStore {
         return try await DishMaintenance.run(local: local, cloud: account.isConnected ? viaCloud : nil)
     }
 
-    private func makeDishClient() -> DishClient {
+    private var dishHost: String {
         let host = (UserDefaults.standard.string(forKey: SettingsKey.host) ?? "").trimmingCharacters(in: .whitespaces)
-        let url = URL(string: "http://\(host.isEmpty ? "192.168.100.1" : host):9201/SpaceX.API.Device.Device/Handle")
+        return host.isEmpty ? "192.168.100.1" : host
+    }
+
+    private func makeDishClient() -> DishClient {
+        let url = URL(string: "http://\(dishHost):9201/SpaceX.API.Device.Device/Handle")
         return DishClient(url: url ?? DishClient.defaultURL)
     }
 
@@ -216,6 +229,7 @@ final class TelemetryStore {
             #if DEBUG
             status = Anonymizer.status(status)
             #endif
+            if let event = outageWatch.update(isDown: isOutage, at: Date()) { OutageNotifier.shared.post(event) }
             if includeHistory || samples.isEmpty {
                 let history = try await source.history()
                 samples = history.samples
@@ -234,8 +248,13 @@ final class TelemetryStore {
             }
             if includeMap || dishConfig == nil { dishConfig = try? await source.config() }
             connection = .live
+            dishDiagnosis = nil
         } catch {
             connection = .offline(error.localizedDescription)
+            let host = dishHost
+            dishDiagnosis = DishDiagnosis.diagnose(dishHost: host, interfaces: NetworkGateway.interfaces(),
+                                                   routeInterface: NetworkGateway.routeInterface(toward: host),
+                                                   starlinkRouterAnswers: routerStatus != nil && routerError == nil)
         }
     }
 }

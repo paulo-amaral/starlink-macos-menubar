@@ -10,6 +10,7 @@ struct StarPulseApp: App {
 
     init() {
         Theme.registerFonts()
+        OutageNotifier.shared.start()
         let store = TelemetryStore()
         store.start()
         _store = State(initialValue: store)

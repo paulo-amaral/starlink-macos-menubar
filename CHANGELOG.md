@@ -4,6 +4,23 @@ All notable changes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.4] - 2026-11-25
+
+### Added
+- Outage notifications: a macOS notification when Starlink has been down for 30 seconds, and
+  another with the outage length when it is back. Turn it off in Settings › App › General.
+- Outage alert in the dashboard: a red banner while the dish reports no connection, also counted
+  in the alerts bell.
+- When the dish does not answer, the popover and dashboard say why: no network, an address clash
+  with 192.168.100.x, a VPN in the way, no route to the dish (bypass mode without a static route),
+  or a silent dish behind a Starlink router.
+- Universal app: runs on Apple silicon and Intel Macs.
+
+### Changed
+- Dish alerts in plain words ("Heating to melt snow" instead of `isHeating`).
+- During an outage the menu bar shows "Outage", and "Offline" when the dish cannot be reached,
+  in place of numbers from before the drop.
+
 ## [0.1.3] - 2026-11-24
 
 ### Added

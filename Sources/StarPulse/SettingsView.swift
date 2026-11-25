@@ -59,6 +59,10 @@ struct StarlinkSettingsPane: View {
                         Text(UpdateWindow.containing(hour: config.updateRebootHour).label)
                     }
                     SettingRow(title: "Defer updates", detail: "Hold firmware updates for up to 3 days") { Text(config.deferUpdates ? "On" : "Off") }
+                    SettingRow(title: "Hardware self-test", detail: "The dish's own check of its hardware") {
+                        Text(store.dishSelfTest?.label ?? "--")
+                            .foregroundStyle(store.dishSelfTest == .failed ? AnyShapeStyle(Theme.critical) : AnyShapeStyle(.secondary))
+                    }
                 }
             } else {
                 Section { Text("Reading the dish settings…").foregroundStyle(Theme.inkSecondary) }
@@ -87,6 +91,7 @@ struct StarlinkSettingsPane: View {
             }
         }
         .formStyle(.grouped)
+        .task { await store.readDishDiagnostics() }
     }
 
     private func sent(_ route: DishMaintenance.Route, _ done: String) -> String {
@@ -164,6 +169,11 @@ struct RouterSettingsPane: View {
                         }
                     }
                     if config.networks.isEmpty { Text("No networks reported.").foregroundStyle(Theme.inkSecondary) }
+                    if let counts = store.routerClientCounts {
+                        SettingRow(title: "Connected devices", detail: "As the router counts them, by Wi-Fi band and cable") {
+                            Text("\(counts.band2GHz) on 2.4 GHz · \(counts.band5GHz) on 5 GHz · \(counts.ethernet) wired").font(Theme.mono(11))
+                        }
+                    }
                 }
                 Section("Mesh nodes") {
                     ForEach(config.meshNodes, id: \.name) { node in
@@ -201,6 +211,7 @@ struct RouterSettingsPane: View {
             }
         }
         .formStyle(.grouped)
+        .task { await store.readRouterDiagnostics() }
     }
 }
 

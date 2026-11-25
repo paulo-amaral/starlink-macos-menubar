@@ -77,6 +77,9 @@ final class TelemetryStore {
     var dishConfig: DishConfig?
     var routerConfig: RouterConfig?
     var routerStatus: RouterStatus?
+    /// From get_diagnostics, read only when Settings opens.
+    var dishSelfTest: DeviceDiagnostics.SelfTest?
+    var routerClientCounts: DeviceDiagnostics.ClientCounts?
     var latencyHistory = LatencyHistory()
     let speedTest = SpeedTestModel()
     let satellites = SatelliteStore()
@@ -180,6 +183,13 @@ final class TelemetryStore {
         let local: @Sendable () async throws -> Void = { try await dish.perform(action) }
         let viaCloud: @Sendable () async throws -> Void = { try await account.dishMaintenance(action, dishId: dishId) }
         return try await DishMaintenance.run(local: local, cloud: account.isConnected ? viaCloud : nil)
+    }
+
+    func readDishDiagnostics() async { dishSelfTest = try? await makeDishClient().selfTest() }
+
+    func readRouterDiagnostics() async {
+        guard let api = RouterAPI(host: routerHost.isEmpty ? resolveRouterHost() : routerHost) else { return }
+        routerClientCounts = try? await api.clientCounts()
     }
 
     private var dishHost: String {

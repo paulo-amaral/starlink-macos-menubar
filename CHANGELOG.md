@@ -4,6 +4,16 @@ All notable changes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.7] - 2026-11-25
+
+### Added
+- Router speed test: the speed test can run on the Starlink router itself (This Mac or Router),
+  so Wi-Fi and the Mac are not part of the result. Speeds are the average of the router's
+  readings; latency, jitter, loss and bufferbloat still come from the dish.
+- Settings › Starlink shows the dish's hardware self-test (Passed or Failed), and Settings ›
+  Router shows connected devices per Wi-Fi band and by cable. Both are read once when the pane
+  opens.
+
 ## [0.1.6] - 2026-11-25
 
 ### Added

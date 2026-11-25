@@ -22,8 +22,9 @@ StarPulse is one Swift package with two targets and no third-party dependencies.
 The router's `get_ping` request (field 1009) is never sent. Dishylink polled it every 2, 5 and
 30 seconds, and each trial was followed within about 15 minutes by a router watchdog reboot (see
 Dishylink's CONTRIBUTING.md). Router ping data comes from `get_status` instead. StarPulse sends
-only a fixed set of requests: dish 1004, 1007, 2008 and 2011; router 1004, 3002 and 3009; and,
-when you ask for them, dish reboot (1001) and obstruction map reset (2017).
+only a fixed set of requests: dish 1004, 1007, 2008 and 2011; router 1004, 3002 and 3009;
+`get_diagnostics` (6000) on both when Settings opens; and, when you ask for them, dish reboot
+(1001), obstruction map reset (2017) and the router's own speed test (start 1027, status 1028).
 
 ## Protocol layer (`StarPulseCore`)
 

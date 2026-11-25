@@ -24,25 +24,76 @@ final class SpeedTestModel {
 
     var isRunning: Bool { progress.phase == .download || progress.phase == .upload || progress.phase == .resting }
 
-    func start() {
+    /// Where the test runs: this Mac against Cloudflare, or the Starlink router on its own.
+    enum Source: String, CaseIterable {
+        case mac, router
+        var label: String { self == .mac ? "This Mac" : "Router" }
+    }
+
+    func start(source: Source, routerHost: String) {
         guard !isRunning else { return }
         progress = SpeedTestProgress()
         gaugeMax = 100
         onStarlink = nil
+        switch source {
+        case .mac: startCloudflare()
+        case .router: startRouter(host: routerHost)
+        }
+    }
+
+    private func startCloudflare() {
         Task { [weak self] in
             let result = await StarlinkNetwork.isThisMacOnStarlink()
             self?.onStarlink = result
         }
         task = Task { [weak self] in
             await SpeedTester().run { update in
-                Task { @MainActor in
-                    guard let self else { return }
-                    self.progress = update
-                    let peak = max(update.downloadMbps ?? 0, update.uploadMbps ?? 0)
-                    if let next = Self.scales.first(where: { peak <= $0 * 0.9 }), next > self.gaugeMax { self.gaugeMax = next }
-                }
+                Task { @MainActor in self?.show(update) }
             }
         }
+    }
+
+    /// Starts the router's test and reads its status every second until a new run has finished.
+    /// The router has no stop request: leaving the screen only stops the polling.
+    private func startRouter(host: String) {
+        task = Task { [weak self] in
+            guard let api = RouterAPI(host: host) else { self?.progress.phase = .error; return }
+            var progress = SpeedTestProgress()
+            do {
+                let previous = try await api.speedtestStatus().id
+                try await api.startSpeedtest()
+                progress.phase = .download
+                progress.startedAt = Date()
+                self?.show(progress)
+                let deadline = Date().addingTimeInterval(90)
+                while !Task.isCancelled, Date() < deadline {
+                    try await Task.sleep(for: .seconds(1))
+                    let test = try await api.speedtestStatus()
+                    guard test.id != previous else { continue }
+                    if test.failed { progress.phase = .error; self?.show(progress); return }
+                    progress.downloadMbps = RouterSpeedtest.average(test.downloadMbps)
+                    progress.uploadMbps = RouterSpeedtest.average(test.uploadMbps)
+                    if !test.uploadMbps.isEmpty, progress.uploadStartedAt == nil {
+                        progress.downloadEndedAt = Date(); progress.uploadStartedAt = Date(); progress.phase = .upload
+                    }
+                    if !test.running {
+                        progress.endedAt = Date(); progress.phase = .done
+                        self?.show(progress)
+                        return
+                    }
+                    self?.show(progress)
+                }
+                if !Task.isCancelled { progress.phase = .error; self?.show(progress) }
+            } catch {
+                if !Task.isCancelled { progress.phase = .error; self?.show(progress) }
+            }
+        }
+    }
+
+    private func show(_ update: SpeedTestProgress) {
+        progress = update
+        let peak = max(update.downloadMbps ?? 0, update.uploadMbps ?? 0)
+        if let next = Self.scales.first(where: { peak <= $0 * 0.9 }), next > gaugeMax { gaugeMax = next }
     }
 
     /// Leaving the screen must stop the streams, or they keep saturating the link unseen.
@@ -57,6 +108,8 @@ struct SpeedTestView: View {
     var model: SpeedTestModel
     var store: TelemetryStore
     @State private var showAdvanced = false
+    @AppStorage("speedTestSource") private var source = SpeedTestModel.Source.mac.rawValue
+    private var chosenSource: SpeedTestModel.Source { SpeedTestModel.Source(rawValue: source) ?? .mac }
 
     #if DEBUG
     // Development aid: lets the dial be looked at without spending the plan's data on a real run.
@@ -88,8 +141,12 @@ struct SpeedTestView: View {
                 figure(quality.latencyMs, "clock", "ms", measured: quality.latencyMs != nil)
             }
             Text(statusText(progress.phase)).font(Theme.ui(11)).foregroundStyle(Theme.inkSecondary).frame(minHeight: 14)
+            AppSegmented(selection: $source, options: SpeedTestModel.Source.allCases.map { ($0.rawValue, $0.label) },
+                          help: chosenSource == .mac ? "Test from this Mac to Cloudflare, Wi-Fi included"
+                                                     : "Test from the Starlink router itself, without Wi-Fi or this Mac")
+                .disabled(model.isRunning)
             Button {
-                if model.isRunning { model.cancel() } else { model.start() }
+                if model.isRunning { model.cancel() } else { model.start(source: chosenSource, routerHost: store.routerHost) }
             } label: {
                 Text(model.isRunning ? "Stop" : (progress.phase == .done ? "Run again" : "Start"))
                     .font(Theme.ui(13, .semibold)).foregroundStyle(.black).frame(maxWidth: .infinity).padding(.vertical, 9)
@@ -113,13 +170,25 @@ struct SpeedTestView: View {
                     }, "Average of the dish's pings while download and upload ran")
                     detail("Bufferbloat", bloat.map { String(format: "%@ · +%.0f ms", $0.grade, $0.increaseMs) },
                            "Largest rise over idle latency, graded A+ to F on Waveform's scale")
-                    Text("Measured against Cloudflare. It may read lower than tests to a nearby server. The test runs about 11 seconds each way and uses data from your plan. Latency, jitter and loss come from the dish and fill in a few seconds after the run.")
+                    Text(chosenSource == .mac
+                         ? "Measured against Cloudflare. It may read lower than tests to a nearby server. The test runs about 11 seconds each way and uses data from your plan. Latency, jitter and loss come from the dish and fill in a few seconds after the run."
+                         : "Measured by the Starlink router itself, so Wi-Fi and this Mac are not part of the result. Speeds are the average of the router's readings. The test runs about 15 seconds each way and uses data from your plan. Latency, jitter and loss come from the dish.")
                         .font(Theme.ui(10)).foregroundStyle(Theme.inkSecondary).frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(.top, 8)
             }
         }
         .onDisappear { model.cancel() }
+        #if DEBUG
+        // Development aid: runs one test when the page opens, for screenshots without clicking.
+        .task {
+            guard let raw = UserDefaults.standard.string(forKey: "debugSpeedTestStart"), let chosen = SpeedTestModel.Source(rawValue: raw) else { return }
+            source = raw
+            showAdvanced = true
+            try? await Task.sleep(for: .seconds(5)) // the router address is resolved on the first poll
+            model.start(source: chosen, routerHost: store.routerHost)
+        }
+        #endif
     }
 
     private func statusText(_ phase: SpeedTestProgress.Phase) -> String {

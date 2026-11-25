@@ -40,6 +40,10 @@ public struct DishClient: DishDataSource {
     public func history() async throws -> DishHistory {
         try DishDecoder.decodeHistory(response: try await call(getHistory: true), now: now())
     }
+
+    public func selfTest() async throws -> DeviceDiagnostics.SelfTest? {
+        try DeviceDiagnostics.selfTest(response: try await LocalGrpc.call(url: url, field: DeviceDiagnostics.request, transport: transport))
+    }
 }
 
 /// One unary gRPC-web call to the dish or the router; both speak the same Device/Handle service.

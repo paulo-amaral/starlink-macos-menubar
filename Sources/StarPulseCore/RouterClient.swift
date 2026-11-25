@@ -182,4 +182,17 @@ public struct RouterAPI: Sendable {
     public func clients() async throws -> [WifiClient] {
         try RouterDecoder.decodeClients(response: try await LocalGrpc.call(url: url, field: RouterDecoder.Request.getClients, transport: transport))
     }
+
+    /// Starts the router's own speed test with its default length; it uses data from the plan.
+    public func startSpeedtest() async throws {
+        _ = try await LocalGrpc.call(url: url, field: RouterSpeedtest.Field.start, transport: transport)
+    }
+
+    public func clientCounts() async throws -> DeviceDiagnostics.ClientCounts? {
+        try DeviceDiagnostics.clientCounts(response: try await LocalGrpc.call(url: url, field: DeviceDiagnostics.request, transport: transport))
+    }
+
+    public func speedtestStatus() async throws -> RouterSpeedtest {
+        try RouterSpeedtest.decode(response: try await LocalGrpc.call(url: url, field: RouterSpeedtest.Field.status, transport: transport))
+    }
 }

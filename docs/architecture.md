@@ -19,7 +19,11 @@ StarPulse is one Swift package with two targets and no third-party dependencies.
 | `speed.cloudflare.com` | HTTPS | speed test; its `cf-meta-ip` header gives the public address |
 | `stat.ripe.net` | HTTPS | SpaceX's announced prefixes (AS14593), to say whether a speed test ran over Starlink; only the AS is sent |
 
-The router's `get_ping` request is never sent: on the Starlink router it restarts the device.
+The router's `get_ping` request (field 1009) is never sent. Dishylink polled it every 2, 5 and
+30 seconds, and each trial was followed within about 15 minutes by a router watchdog reboot (see
+Dishylink's CONTRIBUTING.md). Router ping data comes from `get_status` instead. StarPulse sends
+only a fixed set of requests: dish 1004, 1007, 2008 and 2011; router 1004, 3002 and 3009; and,
+when you ask for them, dish reboot (1001) and obstruction map reset (2017).
 
 ## Protocol layer (`StarPulseCore`)
 

@@ -4,6 +4,18 @@ All notable changes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Packet loss notification: 10% or more of pings lost, without a full outage, for over a minute.
+  On by default.
+- Latency notification: median latency at 150 ms or more for over a minute. Off by default.
+- Settings › App › Notifications, with one switch per notification.
+
+### Fixed
+- docs/architecture.md now credits the `get_ping` finding to Dishylink and lists every request
+  StarPulse sends.
+
 ## [0.1.4] - 2026-11-25
 
 ### Added

@@ -39,6 +39,8 @@ enum SettingsKey {
     static let rateUnit = "rateUnit"
     static let throughputAxisMax = "throughputAxisMaxMbps"
     static let notifyOutages = "notifyOutages"
+    static let notifyPacketLoss = "notifyPacketLoss"
+    static let notifyLatency = "notifyLatency"
 
     static var savedRateUnit: RateUnit { RateUnit(rawValue: UserDefaults.standard.string(forKey: rateUnit) ?? "") ?? .automatic }
 }
@@ -61,7 +63,9 @@ final class TelemetryStore {
     /// Daily peak and average throughput, kept for 62 days (see ThroughputLedger).
     var throughputLedger = ThroughputLedgerStore.standard.load()
     private var ledgerSavedAt = Date.distantPast
-    private var outageWatch = OutageWatch()
+    private var outageWatch = ConditionWatch(threshold: 30)
+    private var lossWatch = ConditionWatch(threshold: 60)
+    private var latencyWatch = ConditionWatch(threshold: 60)
     var dishConfig: DishConfig?
     var routerConfig: RouterConfig?
     var routerStatus: RouterStatus?
@@ -208,6 +212,14 @@ final class TelemetryStore {
         }
     }
 
+    /// Runs once per dish reading; ConditionWatch keeps each notification to one per episode.
+    private func watchLink() {
+        let now = Date(), recent = LinkCheck.recent(samples)
+        if let event = outageWatch.update(isActive: isOutage, at: now) { LinkNotifier.shared.post(.outage, event, quality: recent) }
+        if let event = lossWatch.update(isActive: LinkCheck.isLossy(recent), at: now) { LinkNotifier.shared.post(.packetLoss, event, quality: recent) }
+        if let event = latencyWatch.update(isActive: LinkCheck.isSlow(recent), at: now) { LinkNotifier.shared.post(.latency, event, quality: recent) }
+    }
+
     private func pollClients() async {
         guard let api = RouterAPI(host: routerHost.isEmpty ? resolveRouterHost() : routerHost) else { return }
         do {
@@ -229,7 +241,7 @@ final class TelemetryStore {
             #if DEBUG
             status = Anonymizer.status(status)
             #endif
-            if let event = outageWatch.update(isDown: isOutage, at: Date()) { OutageNotifier.shared.post(event) }
+            watchLink()
             if includeHistory || samples.isEmpty {
                 let history = try await source.history()
                 samples = history.samples

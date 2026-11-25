@@ -202,7 +202,9 @@ struct AppSettingsPane: View {
     @AppStorage(SettingsKey.appearance) private var appearance = AppearanceChoice.dark.rawValue
     @AppStorage(SettingsKey.rateUnit) private var rateUnit = RateUnit.automatic.rawValue
     @AppStorage(SettingsKey.throughputAxisMax) private var axisMax = 0.0
-    @AppStorage(SettingsKey.notifyOutages) private var notifyOutages = true
+    @AppStorage(SettingsKey.notifyOutages) private var notifyOutages = LinkAlert.outage.onByDefault
+    @AppStorage(SettingsKey.notifyPacketLoss) private var notifyPacketLoss = LinkAlert.packetLoss.onByDefault
+    @AppStorage(SettingsKey.notifyLatency) private var notifyLatency = LinkAlert.latency.onByDefault
 
     var body: some View {
         Form {
@@ -211,12 +213,18 @@ struct AppSettingsPane: View {
                 OpenAtLoginToggle()
                 Toggle("Open dashboard at launch", isOn: $openAtLaunch)
                     .help("Show the dashboard window when StarPulse starts")
-                Toggle("Notify when Starlink is down", isOn: $notifyOutages)
-                    .help("Alert after 30 seconds without a connection, and again when it is back")
                 LabeledContent("Theme") {
                     AppSegmented(selection: $appearance, options: AppearanceChoice.allCases.map { ($0.rawValue, $0.label) },
                                   help: "Dark is the default; System follows macOS").frame(width: 240)
                 }
+            }
+            Section("Notifications") {
+                Toggle("Starlink is down", isOn: $notifyOutages)
+                    .help("Alert after 30 seconds without a connection, and again when it is back")
+                Toggle("High packet loss", isOn: $notifyPacketLoss)
+                    .help("Alert when 10% or more of pings are lost for over a minute")
+                Toggle("High latency", isOn: $notifyLatency)
+                    .help("Alert when median latency stays at 150 ms or more for over a minute")
             }
             Section("Throughput") {
                 LabeledContent("Unit") {
@@ -236,7 +244,7 @@ struct AppSettingsPane: View {
         }
         .formStyle(.grouped)
         .onChange(of: appearance) { _, new in (AppearanceChoice(rawValue: new) ?? .dark).apply() }
-        .onChange(of: notifyOutages) { _, on in if on { OutageNotifier.shared.requestPermission() } }
+        .onChange(of: [notifyOutages, notifyPacketLoss, notifyLatency]) { _, on in if on.contains(true) { LinkNotifier.shared.requestPermission() } }
     }
 }
 

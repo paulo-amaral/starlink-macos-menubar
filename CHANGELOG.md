@@ -4,13 +4,14 @@ All notable changes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.5] - 2026-11-25
 
 ### Added
-- Packet loss notification: 10% or more of pings lost, without a full outage, for over a minute.
-  On by default.
-- Latency notification: median latency at 150 ms or more for over a minute. Off by default.
-- Settings › App › Notifications, with one switch per notification.
+- Packet loss notification: pings lost (10% by default), without a full outage, for over a
+  minute. On by default.
+- Latency notification: median latency high (150 ms by default) for over a minute. Off by default.
+- Settings › App › Notifications, with one switch per notification and a choice of limits:
+  loss 5, 10 or 20%; latency 100, 150 or 250 ms.
 
 ### Fixed
 - docs/architecture.md now credits the `get_ping` finding to Dishylink and lists every request

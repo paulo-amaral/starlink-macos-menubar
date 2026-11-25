@@ -205,6 +205,8 @@ struct AppSettingsPane: View {
     @AppStorage(SettingsKey.notifyOutages) private var notifyOutages = LinkAlert.outage.onByDefault
     @AppStorage(SettingsKey.notifyPacketLoss) private var notifyPacketLoss = LinkAlert.packetLoss.onByDefault
     @AppStorage(SettingsKey.notifyLatency) private var notifyLatency = LinkAlert.latency.onByDefault
+    @AppStorage(SettingsKey.lossThreshold) private var lossThreshold = LinkCheck.lossPercent
+    @AppStorage(SettingsKey.latencyThreshold) private var latencyThreshold = LinkCheck.latencyMs
 
     var body: some View {
         Form {
@@ -222,9 +224,19 @@ struct AppSettingsPane: View {
                 Toggle("Starlink is down", isOn: $notifyOutages)
                     .help("Alert after 30 seconds without a connection, and again when it is back")
                 Toggle("High packet loss", isOn: $notifyPacketLoss)
-                    .help("Alert when 10% or more of pings are lost for over a minute")
+                    .help("Alert when pings keep being lost for over a minute, outages aside")
+                LabeledContent("Loss at least") {
+                    AppSegmented(selection: $lossThreshold, options: [(5.0, "5%"), (10.0, "10%"), (20.0, "20%")],
+                                  help: "Share of pings lost over the last minute that counts as high").frame(width: 240)
+                }
+                .disabled(!notifyPacketLoss)
                 Toggle("High latency", isOn: $notifyLatency)
-                    .help("Alert when median latency stays at 150 ms or more for over a minute")
+                    .help("Alert when median latency stays high for over a minute")
+                LabeledContent("Latency at least") {
+                    AppSegmented(selection: $latencyThreshold, options: [(100.0, "100 ms"), (150.0, "150 ms"), (250.0, "250 ms")],
+                                  help: "Median latency over the last minute that counts as high").frame(width: 240)
+                }
+                .disabled(!notifyLatency)
             }
             Section("Throughput") {
                 LabeledContent("Unit") {

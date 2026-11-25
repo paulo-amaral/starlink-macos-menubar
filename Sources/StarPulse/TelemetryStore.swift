@@ -41,6 +41,11 @@ enum SettingsKey {
     static let notifyOutages = "notifyOutages"
     static let notifyPacketLoss = "notifyPacketLoss"
     static let notifyLatency = "notifyLatency"
+    static let lossThreshold = "lossThresholdPercent"
+    static let latencyThreshold = "latencyThresholdMs"
+
+    static var savedLossThreshold: Double { UserDefaults.standard.object(forKey: lossThreshold) as? Double ?? LinkCheck.lossPercent }
+    static var savedLatencyThreshold: Double { UserDefaults.standard.object(forKey: latencyThreshold) as? Double ?? LinkCheck.latencyMs }
 
     static var savedRateUnit: RateUnit { RateUnit(rawValue: UserDefaults.standard.string(forKey: rateUnit) ?? "") ?? .automatic }
 }
@@ -216,8 +221,8 @@ final class TelemetryStore {
     private func watchLink() {
         let now = Date(), recent = LinkCheck.recent(samples)
         if let event = outageWatch.update(isActive: isOutage, at: now) { LinkNotifier.shared.post(.outage, event, quality: recent) }
-        if let event = lossWatch.update(isActive: LinkCheck.isLossy(recent), at: now) { LinkNotifier.shared.post(.packetLoss, event, quality: recent) }
-        if let event = latencyWatch.update(isActive: LinkCheck.isSlow(recent), at: now) { LinkNotifier.shared.post(.latency, event, quality: recent) }
+        if let event = lossWatch.update(isActive: LinkCheck.isLossy(recent, atLeast: SettingsKey.savedLossThreshold), at: now) { LinkNotifier.shared.post(.packetLoss, event, quality: recent) }
+        if let event = latencyWatch.update(isActive: LinkCheck.isSlow(recent, atLeast: SettingsKey.savedLatencyThreshold), at: now) { LinkNotifier.shared.post(.latency, event, quality: recent) }
     }
 
     private func pollClients() async {

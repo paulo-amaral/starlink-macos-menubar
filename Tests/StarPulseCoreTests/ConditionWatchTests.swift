@@ -58,4 +58,10 @@ import Testing
     @Test func highMedianLatencyIsFlagged() {
         #expect(LinkCheck.isSlow(LinkCheck.recent(minute(drop: { _ in 0 }, latency: 180))))
     }
+
+    @Test func chosenThresholdsApply() {
+        let quality = LinkCheck.recent(minute(drop: { _ in 0.07 }, latency: 120))
+        #expect(!LinkCheck.isLossy(quality) && LinkCheck.isLossy(quality, atLeast: 5))
+        #expect(!LinkCheck.isSlow(quality) && LinkCheck.isSlow(quality, atLeast: 100))
+    }
 }

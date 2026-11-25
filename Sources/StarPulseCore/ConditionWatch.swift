@@ -47,6 +47,6 @@ public enum LinkCheck {
         return LinkQuality.over(live, from: start, to: end)
     }
 
-    public static func isLossy(_ quality: LinkQuality) -> Bool { (quality.lossPercent ?? 0) >= lossPercent }
-    public static func isSlow(_ quality: LinkQuality) -> Bool { (quality.latencyMs ?? 0) >= latencyMs }
+    public static func isLossy(_ quality: LinkQuality, atLeast percent: Double = lossPercent) -> Bool { (quality.lossPercent ?? 0) >= percent }
+    public static func isSlow(_ quality: LinkQuality, atLeast ms: Double = latencyMs) -> Bool { (quality.latencyMs ?? 0) >= ms }
 }

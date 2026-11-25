@@ -45,7 +45,7 @@ device pause and DNS filtering rules.**
 |---|---|
 | Menu bar | Choose the readouts: status, latency, content filter, ping success, download, power |
 | Popover | Status, alerts, live throughput, latency and a shortcut to every panel |
-| Notifications | Starlink down for 30 seconds (and back), high packet loss, high latency; each one switchable |
+| Notifications | Starlink down for 30 seconds (and back), high packet loss, high latency; each one switchable, with adjustable limits |
 | Dashboard | Tiles, throughput and latency charts (15 min, 1 h, 6 h), power, events and outages |
 | Statistics | Starlink-style cards: download, upload, latency, ping success, outages, obstructions |
 | Latency | Starlink PoP latency against the router, average and current, distribution |

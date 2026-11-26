@@ -159,7 +159,8 @@ how to report a vulnerability: **[SECURITY.md](SECURITY.md)**.
 The dish data works if the Mac can reach `192.168.100.1`. In bypass mode your router needs a static
 route to `192.168.100.1/32` out of the Starlink WAN port; with dual-WAN, keep that route on the
 Starlink WAN. When the dish does not answer, StarPulse shows the likely cause. Devices, nodes,
-pause and rules need the Starlink router.
+pause and rules need the Starlink router. Steps for OpenWrt, MikroTik, pfSense and OPNsense:
+**[docs/bypass-mode.md](docs/bypass-mode.md)**.
 
 **Does it need the Starlink app or an account?**
 No for monitoring. Yes (sign-in) for pause, network DNS rules and account details.

@@ -4,6 +4,24 @@ All notable changes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.8] - 2026-11-26
+
+### Fixed
+- The popover no longer shows a red "Alert" for dish flags that describe normal operation:
+  weaker signal than expected, heating to melt snow, power save, update pending, obstruction map
+  reset and roaming. They are listed under Status in the dashboard's alerts bell and no longer light
+  its badge. The dish reports "weaker signal than expected" even with full signal quality and no
+  ping loss, and leaves it out of its own diagnostics alerts.
+
+### Changed
+- "Weaker signal than expected" now reads "Signal below the dish's forecast, often weather; no
+  action needed". The two flags still shown by their code name have plain words: dish telemetry
+  out of date, and the power supply's router port being slow.
+
+### Added
+- docs/bypass-mode.md: how to reach the dish through your own router in bypass mode (OpenWrt,
+  MikroTik, pfSense, OPNsense).
+
 ## [0.1.7] - 2026-11-25
 
 ### Added

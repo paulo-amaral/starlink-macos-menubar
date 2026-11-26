@@ -31,8 +31,10 @@ private func response(field: Int, _ build: (inout ProtoWriter) -> Void) -> [UInt
     #expect(status.isUpdateWaitingForReboot)
     #expect(status.updateRebootAt == Date(timeIntervalSince1970: 1_795_633_506))
     var withAlert = status
-    withAlert.activeAlerts = ["installPending", "isHeating"]
-    #expect(withAlert.problemAlertTitles == ["Heating to melt snow"])
+    withAlert.activeAlerts = ["installPending", "isHeating", "lowerSignalThanPredicted", "motorsStuck"]
+    #expect(withAlert.problemAlertTitles == ["Dish motors are stuck"])
+    #expect(withAlert.statusFlagTitles == ["Software update waiting to install", "Heating to melt snow", "Signal below the dish's forecast, often weather; no action needed"])
+    #expect(DishDecoder.alertNames.values.allSatisfy { DishStatus.alertWording[$0] != nil })
 
     let milliseconds = response(field: DishDecoder.Response.dishGetStatus) { w in w.writeMessage(1026) { $0.writeVarint(4, 1_795_633_506_000) } }
     #expect(try DishDecoder.decodeStatus(response: milliseconds).updateRebootAt == Date(timeIntervalSince1970: 1_795_633_506))

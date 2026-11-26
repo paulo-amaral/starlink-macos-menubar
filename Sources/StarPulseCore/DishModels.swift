@@ -45,10 +45,22 @@ public struct DishStatus: Sendable, Equatable {
     /// The active alerts in plain words; a name without a known wording is shown as is.
     public var alertTitles: [String] { activeAlerts.map(Self.alertTitle) }
 
-    /// Active alerts that need attention: a pending update is news, not a problem, once it is shown on its own.
+    /// Active alerts that need attention.
     public var problemAlertTitles: [String] {
-        activeAlerts.filter { !(isUpdateWaitingForReboot && $0 == "installPending") }.map(Self.alertTitle)
+        activeAlerts.filter { !Self.statusFlags.contains($0) }.map(Self.alertTitle)
     }
+
+    /// Active flags that describe what the dish is doing rather than a fault.
+    public var statusFlagTitles: [String] {
+        activeAlerts.filter { Self.statusFlags.contains($0) }.map(Self.alertTitle)
+    }
+
+    /// StarPulse's choice. lowerSignalThanPredicted is left out of the dish's own get_diagnostics
+    /// alerts and stays set on a live dish with signal quality 1.0 and no ping loss (2026.11.12);
+    /// the others report normal operation. A pending update has its own notice.
+    static let statusFlags: Set<String> = [
+        "isHeating", "isPowerSaveIdle", "installPending", "obstructionMapReset", "roaming", "lowerSignalThanPredicted",
+    ]
 
     public static func alertTitle(_ name: String) -> String { alertWording[name] ?? name }
 
@@ -65,12 +77,14 @@ public struct DishStatus: Sendable, Equatable {
         "powerSupplyThermalThrottle": "Power supply is too hot; speed reduced",
         "isPowerSaveIdle": "Power save mode is on",
         "lowMotorCurrent": "Low motor current",
-        "lowerSignalThanPredicted": "Weaker signal than expected",
+        "lowerSignalThanPredicted": "Signal below the dish's forecast, often weather; no action needed",
         "slowEthernetSpeeds100": "Ethernet link limited to 100 Mbps",
         "obstructionMapReset": "Obstruction map was reset",
         "dishWaterDetected": "Water detected in the dish",
         "routerWaterDetected": "Water detected in the router",
         "noEthernetLink": "No Ethernet link",
+        "dbfTelemStale": "Dish telemetry is out of date",
+        "upsuRouterPortSlow": "Power supply's router port is slow",
     ]
 }
 
